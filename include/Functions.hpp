@@ -20,7 +20,7 @@ namespace Function {
     T Rosenbrock(const vector<T>& x) // most difficult function, suitable for testing flatness of the regione of global minima
     {
         T result = 0;
-        for (int i = 0; i < x.size() - 1; ++i) {
+        for (typename vector<T>::size_type i = 0; i < x.size() - 1; ++i) {
             result += (aR - x[i]) * (aR - x[i]) + bR * (x[i + 1] - x[i] * x[i]) * (x[i + 1] - x[i] * x[i]);
         }
         return result;

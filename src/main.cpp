@@ -83,7 +83,7 @@ int main()
     vector<PSOType> master;
 
     #pragma omp parallel for 
-    for (int sub_swarm_id=0; sub_swarm_id < num_sswarms; ++sub_swarm_id)
+    for (size_t sub_swarm_id=0; sub_swarm_id < num_sswarms; ++sub_swarm_id)
     {
         PSOType pso;
         pso.init(sub_swarm_id,max_iter, tol, 0.5, 2.0, 2.0, num_particles, fun, D, exact_solution);
@@ -97,7 +97,7 @@ int main()
     master[0].info(functionName); 
 
     #pragma omp parallel for num_threads(num_sswarms)
-    for (int i=0; i < master.size(); ++i)
+    for (size_t i=0; i < master.size(); ++i)
     {
         PSOType& sub_swarm = master[i];
         auto start = high_resolution_clock::now();

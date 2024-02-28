@@ -1,5 +1,5 @@
-.DS_Store
+.cache
 .gitignore
 build/
-.vscode/
+.zed/
 data/

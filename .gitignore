@@ -3,3 +3,4 @@
 build/
 .zed/
 data/
+.DS_Store

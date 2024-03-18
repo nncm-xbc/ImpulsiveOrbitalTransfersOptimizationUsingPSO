@@ -12,7 +12,7 @@ constexpr double eps = numeric_limits<double>::epsilon();
 template <typename T, typename I, typename Fun, typename Obj>
 PSO<T, I, Fun, Obj>::PSO(const I &swarm_id, const I &max_iter, const T &tol,
                          const T &w, const T &c1, const T &c2,
-                         const I &num_particles, const Fun &fun, const I &D,
+                         const I &num_particles, const Fun &fun, const &D,
                          const vector<T> &exact_solution)
     : _max_iter(max_iter), _tol(tol), _w(w), _c1(c1), _c2(c2),
       _num_particles(num_particles), _fun(fun), _D(D), _id(swarm_id),
@@ -22,8 +22,7 @@ PSO<T, I, Fun, Obj>::PSO(const I &swarm_id, const I &max_iter, const T &tol,
 }
 template <typename T, typename I, typename Fun, typename Obj>
 PSO<T, I, Fun, Obj>::PSO() {}
-
-template <typename T, typename I, typename Fun, typename Obj>
+b template <typename T, typename I, typename Fun, typename Obj>
 void PSO<T, I, Fun, Obj>::setParticles() {
   for (int p = 0; p < _num_particles; ++p) {
     _particles.emplace_back(Obj(_fun, _D));

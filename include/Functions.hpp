@@ -7,65 +7,51 @@
 using namespace std;
 
 namespace Function {
+// Rosenbrock function parameter
+constexpr double aR = 1.0;
+constexpr double bR = 100.0;
+// Ackley function parameters
+constexpr double aA = 20.0;
+constexpr double bA = 0.2;
+constexpr double cA = 2 * M_PI;
 
-constexpr double aR = 1.0;   // Rosenbrock function parameter
-constexpr double bR = 100.0; // Rosenbrock function parameter
-
-constexpr double aA = 20.0;     // Ackley function parameter
-constexpr double bA = 0.2;      // Ackley function parameter
-constexpr double cA = 2 * M_PI; // Ackley function parameter
-
-template <typename T>
-T Rosenbrock(
-    const vector<T> &x) // most difficult function, suitable for testing
-                        // flatness of the regione of global minima
-{
+template <typename T> T Rosenbrock(double *x) {
   T result = 0;
-  for (typename vector<T>::size_type i = 0; i < x.size() - 1; ++i) {
+  for (size_t i = 0; i < sizeof(x) - 1; ++i) {
     result += (aR - x[i]) * (aR - x[i]) +
               bR * (x[i + 1] - x[i] * x[i]) * (x[i + 1] - x[i] * x[i]);
   }
   return result;
 }
 
-template <typename T>
-T Sphere(const vector<T> &x) // very easy convex function
-{
-  /*
-      Problems for high dimensions
-  */
+template <typename T> T Sphere(double *x) {
   T result = 0;
-  for (const auto &xi : x) {
-    result += xi * xi;
+  for (size_t i = 0; i < sizeof(x); ++i) {
+    result += x[i] * x[i];
   }
   return result;
 }
 
-template <typename T>
-T Ackley(
-    const vector<T> &x) // medium difficulty function, good for local minima
-{
+template <typename T> T Ackley(double *x) {
   T sum1 = 0;
   T sum2 = 0;
 
-  for (const auto &xi : x) {
-    sum1 += xi * xi;
-    sum2 += cos(cA * xi);
+  for (size_t i = 0; i < sizeof(x); ++i) {
+    sum1 += x[i] * x[i];
+    sum2 += cos(cA * x[i]);
   }
 
-  T term1 = -aA * exp(-bA * sqrt(sum1 / x.size()));
-  T term2 = -exp(sum2 / x.size());
+  T term1 = -aA * exp(-bA * sqrt(sum1 / sizeof(x)));
+  T term2 = -exp(sum2 / sizeof(x));
 
   return term1 + term2 + aA + exp(1.0);
 }
 
-template <typename T>
-T Griewank(const vector<T> &x) // more particles needed
-{
+template <typename T> T Griewank(double *x) {
   T sum = 0;
   T prod = 1;
 
-  for (size_t i = 0; i < x.size(); ++i) {
+  for (size_t i = 0; i < sizeof(x); ++i) {
     sum += x[i] * x[i] / 4000.0;
     prod *= cos(x[i] / sqrt(i + 1));
   }
@@ -73,19 +59,17 @@ T Griewank(const vector<T> &x) // more particles needed
   return 1.0 + sum - prod;
 }
 
-template <typename T>
-T Rastrigin(const vector<T> &x) // more particles needed
-{
+template <typename T> T Rastrigin(double *x) {
   T result = 0;
-  for (const auto &xi : x) {
-    result += xi * xi - 10 * cos(2 * M_PI * xi) + 10;
+  for (size_t i = 0; i < sizeof(x); ++i) {
+    result += x[i] * x[i] - 10 * cos(2 * M_PI * x[i]) + 10;
   }
   return result;
 }
 
-template <typename T> T Shaffer(const std::vector<T> &x) {
+template <typename T> T Shaffer(double *x) {
   T term = 0;
-  for (size_t i = 0; i < x.size(); ++i) {
+  for (size_t i = 0; i < sizeof(x); ++i) {
     term += x[i] * x[i];
   }
   T result =

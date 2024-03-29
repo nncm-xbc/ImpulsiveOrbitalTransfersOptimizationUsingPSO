@@ -18,7 +18,7 @@ int main() {
   size_t max_iter = 10000;
   double tol = 1e-6;
   size_t numP = 10;
-  size_t num_sswarms = 1;
+  size_t num_sswarms = 2;
   double w = 0.5;
   double c1 = 1.5, c2 = 1.5;
   double posMin = -5, posMax = 5;
@@ -56,13 +56,14 @@ int main() {
   master[0].info();
 #pragma omp parallel for
   for (SwarmType &sub_swarm : master) {
+    size_t swarm_count = omp_get_thread_num();
     auto start = high_resolution_clock::now();
     sub_swarm.solve();
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
-    // #pragma omp critical
-    cout << "\nSwarm" < < < < "Elapsed time : " << duration.count() << " ms"
-                                                << endl;
+#pragma omp critical
+    cout << "\nSwarm " << swarm_count
+         << " --> Elapsed time : " << duration.count() << " ms" << endl;
   }
   return 0;
 }

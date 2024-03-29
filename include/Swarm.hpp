@@ -16,8 +16,9 @@ public:
   ~Swarm();
 
   // Public interfaces
-  void init(const T &tol, const T &w, const T &c1, const T &c2,
-            const double &posMin, const double &posMax);
+  void init(const size_t &max_iter, const T &tol, const T &w, const T &c1,
+            const T &c2, const double &posMin, const double &posMax,
+            const Fun &fun);
   void update();
   void solve();
   void printResults() const; // print or visualization or record metrics method
@@ -34,7 +35,9 @@ public:
   void setPosMax(const double &posMax);
   void setFun(const Fun &fun);
   void setTol(const double &tol);
+  void setMaxIter(const size_t &max_iter);
   void setRng();
+  void setPBestPos(size_t &id);
 
   // Getters
   size_t getNumP() const;
@@ -47,7 +50,7 @@ public:
   double getPosMax() const;
   T *getPosition(size_t &id) const;
   T *getVelocity(size_t &id) const;
-  T *getPBestPos() const;
+  T *getPBestPos(size_t &id) const;
   T *getGBestPos() const;
   double getPBestVal() const;
   double getGBestVal() const;
@@ -74,18 +77,20 @@ private:
   double _tol;
   mt19937 _rng;
   uniform_real_distribution<T> _dis;
-  double _max_iter;
+  size_t _max_iter;
 
   // Memory management
   void allocateMemory();
   void deallocateMemory();
 
   // Private setters
+  void initPBestPos(size_t &id);
   void updatePosition(T **&positions);
   void updateVelocity(const T **&velocities);
   void updatePBestPos();
   void updatePBestVal(const double &pBestVal);
-  void updateGBestPos(const T *gBestPos);
+  void updateGBestPos();
+  void updateWC(T *GBPos_previous);
 };
 
 #endif

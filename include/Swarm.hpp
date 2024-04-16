@@ -21,7 +21,8 @@ public:
             const Fun &fun);
   void update();
   void solve();
-  void printResults() const; // print or visualization or record metrics method
+  void printResults(const std::vector<double> &convergenceHistory,
+                    double computationTime, int numFuncEvaluations) const;
   void info() const;
 
   // Setters
@@ -48,8 +49,8 @@ public:
   double getVelMax() const;
   double getPosMin() const;
   double getPosMax() const;
-  T *getPosition(size_t &id) const;
-  T *getVelocity(size_t &id) const;
+  double *getPosition(size_t &id) const;
+  double *getVelocity(size_t &id) const;
   T *getPBestPos(size_t &id) const;
   T *getGBestPos() const;
   double getPBestVal() const;
@@ -57,12 +58,16 @@ public:
   Fun getFun() const;
   double getTol() const;
 
+  // Memory management
+  void allocateMemory();
+  void deallocateMemory();
+
 private:
   // Private variables
-  T **_positions;
-  T **_velocities;
-  T **_pBestPos;
-  T *_gBestPos;
+  double **_positions;
+  double **_velocities;
+  double **_pBestPos;
+  double *_gBestPos;
   double _pBestVal;
   double _gBestVal;
   size_t _numP;
@@ -78,10 +83,6 @@ private:
   mt19937 _rng;
   uniform_real_distribution<T> _dis;
   size_t _max_iter;
-
-  // Memory management
-  void allocateMemory();
-  void deallocateMemory();
 
   // Private setters
   void initPBestPos(size_t &id);

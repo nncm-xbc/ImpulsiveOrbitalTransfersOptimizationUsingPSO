@@ -1,21 +1,21 @@
 #include "Swarm.hpp"
+#include <chrono>
 #include <iostream>
+#include <omp.h>
 #include <random>
 
 using namespace std;
+using namespace chrono;
 
-constexpr double eps = numeric_limits<double>::epsilon();
+double eps = numeric_limits<double>::epsilon();
 
 // Constructor
 template <typename T, typename Fun>
-Swarm<T, Fun>::Swarm(const size_t &numP, const size_t &D) : _numP(numP), _D(D) {
-  allocateMemory();
-}
+Swarm<T, Fun>::Swarm(const size_t &numP, const size_t &D)
+    : _numP(numP), _D(D) {}
 
 // Destructor
-template <typename T, typename Fun> Swarm<T, Fun>::~Swarm() {
-  deallocateMemory();
-}
+template <typename T, typename Fun> Swarm<T, Fun>::~Swarm() {}
 
 // Public Interfaces
 template <typename T, typename Fun>
@@ -30,21 +30,14 @@ void Swarm<T, Fun>::init(const size_t &max_iter, const T &tol, const T &w,
   setPosMax(posMax);
   setTol(tol);
   setFun(fun);
-
   setRng();
-  uniform_real_distribution<T> _dis(_posMin, _posMax);
 
+  uniform_real_distribution<T> _dis(_posMin, _posMax);
   for (int p = 0; p < _numP; ++p) {
-    T *pos = new T[_D];
-    T *vel = new T[_D];
     for (int d = 0; d < _D; ++d) {
-      pos[d] = _dis(_rng);
-      vel[d] = _dis(_rng);
+      _positions[p][d] = _dis(_rng);
+      _velocities[p][d] = _dis(_rng);
     }
-    _positions[p] = pos;
-    _velocities[p] = vel;
-    delete[] pos;
-    delete[] vel;
   }
   for (size_t p = 0; p < _numP; ++p) {
     if (p < _numP) {
@@ -53,12 +46,29 @@ void Swarm<T, Fun>::init(const size_t &max_iter, const T &tol, const T &w,
       throw std::out_of_range("Particle index is out of bounds");
     }
   }
-  updateGBestPos();
+  _gBestPos = _pBestPos[0];
+  _gBestVal = _fun(_gBestPos, _D);
+#pragma omp critical
+  { updateGBestPos(); }
+  /*
+   // checks :
+   // Check size of _positions
+   cout << "_numP \n" << _numP << endl;
+   cout << "Size of _pos \n" << sizeof(_positions) << endl;
+   // Check size of elements of _positions
+   cout << "_D \n" << _D << endl;
+   for (int p = 0; p < _numP; ++p) {
+     for (int d = 0; d < _D; ++d) {
+       cout << "_positions complete p|d :" << p << " | " << d
+            << "| vla = " << _positions[p][d] << endl;
+     }
+   }
+    */
 }
 
 template <typename T, typename Fun> void Swarm<T, Fun>::update() {
-  updateGBestPos();
-  // #pragma omp parallel for
+  // updateGBestPos();
+  // #pragma omp parallel for num_threads(_numP)
   for (int p = 0; p < _numP; ++p) {
     // random factors
     vector<T> r1, r2;
@@ -79,14 +89,17 @@ template <typename T, typename Fun> void Swarm<T, Fun>::update() {
 }
 
 template <typename T, typename Fun> void Swarm<T, Fun>::solve() {
+  auto start = high_resolution_clock::now();
   for (int i = 0; i < _max_iter; ++i) {
     update();
     updatePBestPos();
     updateGBestPos();
     T *GBPos_previous = _gBestPos;
-    updateWC(GBPos_previous);
-    if (i == _max_iter - 1) {
-      printResults();
+    // updateWC(GBPos_previous);
+    if (i == _max_iter - 1 or _gBestVal < _tol) {
+      auto stop = high_resolution_clock::now();
+      auto duration = duration_cast<milliseconds>(stop - start);
+      cout << " --> Elapsed time : " << duration.count() << " ms" << endl;
       return void();
     }
   }
@@ -100,7 +113,7 @@ void Swarm<T, Fun>::updateVelocity(const T **&velocities) {}
 
 template <typename T, typename Fun> void Swarm<T, Fun>::updatePBestPos() {
   for (int p = 0; p < _numP; ++p) {
-    if (_fun(_positions[p]) < _fun(_pBestPos[p])) {
+    if (_fun(_positions[p], _D) < _fun(_pBestPos[p], _D)) {
       _pBestPos[p] = _positions[p];
     }
   }
@@ -111,19 +124,20 @@ void Swarm<T, Fun>::updatePBestVal(const double &pBestVal) {}
 
 template <typename T, typename Fun> void Swarm<T, Fun>::updateGBestPos() {
   size_t id_best = 0;
+  // #pragma omp parallel for shared(id_best)
   for (size_t id = 0; id < _numP; ++id) {
-    if (_fun(_positions[id]) < _fun(_positions[id_best]) ||
-        (_fun(_positions[id]) < _gBestVal)) {
-      _gBestVal = _fun(_positions[id]);
+    double valfun_Id = _fun(_positions[id], _D);
+    if (valfun_Id < _fun(_positions[id_best], _D && valfun_Id < _gBestVal)) {
+      _gBestVal = valfun_Id;
       id_best = id;
+      cout << "New Global best : " << _gBestVal << endl;
     }
   }
-  _gBestPos = _positions[id_best];
 }
 
 template <typename T, typename Fun>
 void Swarm<T, Fun>::updateWC(T *GBPos_previous) {
-  if (_fun(_gBestPos) < _fun(GBPos_previous)) {
+  if (_gBestVal < _fun(GBPos_previous, _D)) {
     _w = min(_w * 1.2, 0.9);
     if (abs(_w - 0.9) < eps) {
       _w *= 0.95;
@@ -136,14 +150,27 @@ void Swarm<T, Fun>::updateWC(T *GBPos_previous) {
   }
 }
 
-template <typename T, typename Fun> void Swarm<T, Fun>::printResults() const {
-  // cout << "\n Tolerance achieved: " << errorNorm(_gBestPos) << endl;
-  cout << "\n Global Best Position: ";
+template <typename T, typename Fun>
+void Swarm<T, Fun>::printResults(const std::vector<double> &convergenceHistory,
+                                 double computationTime,
+                                 int numFuncEvaluations) const {
+  std::cout << "\n=== Optimization Results ===" << std::endl;
+  std::cout << "Final Global Best Position: ";
   for (int i = 0; i < _D; ++i) {
-    cout << _gBestPos[i] << " ";
+    std::cout << _gBestPos[i] << " ";
   }
-  cout << endl;
-  cout << "\n Global Best Value: " << _fun(_gBestPos) << endl;
+  std::cout << std::endl;
+  std::cout << "Final Global Best Fitness: " << _gBestVal << std::endl;
+  std::cout << "Computation Time: " << computationTime << " seconds"
+            << std::endl;
+  std::cout << "Number of Function Evaluations: " << numFuncEvaluations
+            << std::endl;
+  std::cout << "Convergence History: ";
+  for (const auto &fitness : convergenceHistory) {
+    std::cout << fitness << " ";
+  }
+  std::cout << std::endl;
+  std::cout << "================================" << std::endl;
 }
 
 template <typename T, typename Fun> void Swarm<T, Fun>::info() const {
@@ -157,12 +184,16 @@ template <typename T, typename Fun> void Swarm<T, Fun>::info() const {
   cout << " Inertia Weight      : " << _w << endl;
   cout << " Cognitive Parameter : " << _c1 << endl;
   cout << " Social Parameter    : " << _c2 << endl;
-  cout << " Global best positions: \n" << endl;
+  cout << " Global best positions: " << endl;
   for (int i = 0; i < _D; ++i) {
     cout << _gBestPos[i] << " ";
   }
   cout << endl;
-  cout << "Global best value    : " << _fun(_gBestPos) << endl;
+  if (_gBestVal < _tol) {
+    cout << "CONVERGENCE: Global best value    : " << _gBestVal << endl;
+  } else {
+    cout << "DIVERGENCE: Global best value    : " << _gBestVal << endl;
+  }
   cout << "=============================================" << endl;
 }
 
@@ -281,15 +312,15 @@ template <typename T, typename Fun> double Swarm<T, Fun>::getTol() const {
 
 // Memory Management
 template <typename T, typename Fun> void Swarm<T, Fun>::allocateMemory() {
-  _positions = new T *[_numP];
-  _velocities = new T *[_numP];
-  _pBestPos = new T *[_numP];
-  _gBestPos = new T[_D];
+  _positions = new double *[_numP];
+  _velocities = new double *[_numP];
+  _pBestPos = new double *[_numP];
+  _gBestPos = new double[_D];
 
   for (size_t i = 0; i < _numP; ++i) {
-    _positions[i] = new T[_D];
-    _velocities[i] = new T[_D];
-    _pBestPos[i] = new T[_D];
+    _positions[i] = new double[_D];
+    _velocities[i] = new double[_D];
+    _pBestPos[i] = new double[_D];
   }
 }
 template <typename T, typename Fun> void Swarm<T, Fun>::deallocateMemory() {
@@ -304,4 +335,4 @@ template <typename T, typename Fun> void Swarm<T, Fun>::deallocateMemory() {
   delete[] _gBestPos;
 }
 
-template class Swarm<double, std::function<double(double *)>>;
+template class Swarm<double, std::function<double(double *, size_t)>>;

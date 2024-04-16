@@ -15,43 +15,43 @@ constexpr double aA = 20.0;
 constexpr double bA = 0.2;
 constexpr double cA = 2 * M_PI;
 
-template <typename T> T Rosenbrock(double *x) {
-  T result = 0;
-  for (size_t i = 0; i < sizeof(x) - 1; ++i) {
+template <typename T> double Rosenbrock(double *x, size_t sizeX) {
+  double result = 0;
+  for (size_t i = 0; i < sizeX; ++i) {
     result += (aR - x[i]) * (aR - x[i]) +
               bR * (x[i + 1] - x[i] * x[i]) * (x[i + 1] - x[i] * x[i]);
   }
   return result;
 }
 
-template <typename T> T Sphere(double *x) {
-  T result = 0;
-  for (size_t i = 0; i < sizeof(x); ++i) {
+template <typename T> double Sphere(double *x, size_t sizeX) {
+  double result = 0;
+  for (size_t i = 0; i < sizeX; ++i) {
     result += x[i] * x[i];
   }
   return result;
 }
 
-template <typename T> T Ackley(double *x) {
+template <typename T> T Ackley(double *x, size_t sizeX) {
   T sum1 = 0;
   T sum2 = 0;
 
-  for (size_t i = 0; i < sizeof(x); ++i) {
+  for (size_t i = 0; i < sizeX; ++i) {
     sum1 += x[i] * x[i];
     sum2 += cos(cA * x[i]);
   }
 
-  T term1 = -aA * exp(-bA * sqrt(sum1 / sizeof(x)));
-  T term2 = -exp(sum2 / sizeof(x));
+  T term1 = -aA * exp(-bA * sqrt(sum1 / sizeX));
+  T term2 = -exp(sum2 / sizeX);
 
   return term1 + term2 + aA + exp(1.0);
 }
 
-template <typename T> T Griewank(double *x) {
+template <typename T> T Griewank(double *x, size_t sizeX) {
   T sum = 0;
   T prod = 1;
 
-  for (size_t i = 0; i < sizeof(x); ++i) {
+  for (size_t i = 0; i < sizeX; ++i) {
     sum += x[i] * x[i] / 4000.0;
     prod *= cos(x[i] / sqrt(i + 1));
   }
@@ -59,17 +59,17 @@ template <typename T> T Griewank(double *x) {
   return 1.0 + sum - prod;
 }
 
-template <typename T> T Rastrigin(double *x) {
+template <typename T> T Rastrigin(double *x, size_t sizeX) {
   T result = 0;
-  for (size_t i = 0; i < sizeof(x); ++i) {
+  for (size_t i = 0; i < sizeX; ++i) {
     result += x[i] * x[i] - 10 * cos(2 * M_PI * x[i]) + 10;
   }
   return result;
 }
 
-template <typename T> T Shaffer(double *x) {
+template <typename T> T Shaffer(double *x, size_t sizeX) {
   T term = 0;
-  for (size_t i = 0; i < sizeof(x); ++i) {
+  for (size_t i = 0; i < sizeX; ++i) {
     term += x[i] * x[i];
   }
   T result =

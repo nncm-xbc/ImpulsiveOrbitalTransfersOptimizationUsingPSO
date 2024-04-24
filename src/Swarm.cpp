@@ -11,61 +11,54 @@ double eps = numeric_limits<double>::epsilon();
 
 // Constructor
 template <typename T, typename Fun>
-Swarm<T, Fun>::Swarm(const size_t &numP, const size_t &D)
-    : _numP(numP), _D(D) {}
+Swarm<T, Fun>::Swarm(const size_t &numP, const size_t &D, const size_t &max_iter, const T &tol, const T &w,
+                         const T &c1, const T &c2, const double &posMin,
+                         const double &posMax, const Fun &fun)
+    : _numP(numP), _D(D), _max_iter(max_iter), _tol(tol), _w(w), _c1(c1), _c2(c2), _posMin(posMin), _posMax(posMax), _fun(fun) {
+      setRng();
+      allocateMemory();
+
+      uniform_real_distribution<T> _dis(_posMin, _posMax);
+      for (int p = 0; p < _numP; ++p) {
+        for (int d = 0; d < _D; ++d) {
+          _positions[p][d] = _dis(_rng);
+          _velocities[p][d] = _dis(_rng);
+        }
+      }
+      for (size_t p = 0; p < _numP; ++p) {
+        if (p < _numP) {
+          initPBestPos(p);
+        } else {
+          throw std::out_of_range("Particle index is out of bounds");
+        }
+      }
+      _gBestPos = _pBestPos[0];
+      cout << "Dim " << _D << endl;
+      size_t dim = _D;
+      _gBestVal = _fun(_gBestPos);
+    #pragma omp critical
+      { updateGBestPos(); }
+
+       // checks :
+       // Check size of _positions
+       cout << "_numP \n" << _numP << endl;
+       cout << "Size of _pos \n" << sizeof(_positions) << endl;
+       // Check size of elements of _positions
+       cout << "_D \n" << _D << endl;
+       for (int p = 0; p < _numP; ++p) {
+         for (int d = 0; d < _D; ++d) {
+           cout << "_positions complete p|d :" << p << " | " << d
+                << "| vla = " << _positions[p][d] << endl;
+         }
+       }
+  }
 
 // Destructor
-template <typename T, typename Fun> Swarm<T, Fun>::~Swarm() {}
-
-// Public Interfaces
-template <typename T, typename Fun>
-void Swarm<T, Fun>::init(const size_t &max_iter, const T &tol, const T &w,
-                         const T &c1, const T &c2, const double &posMin,
-                         const double &posMax, const Fun &fun) {
-  setW(w);
-  setMaxIter(max_iter);
-  setC1(c1);
-  setC2(c2);
-  setPosMin(posMin);
-  setPosMax(posMax);
-  setTol(tol);
-  setFun(fun);
-  setRng();
-
-  uniform_real_distribution<T> _dis(_posMin, _posMax);
-  for (int p = 0; p < _numP; ++p) {
-    for (int d = 0; d < _D; ++d) {
-      _positions[p][d] = _dis(_rng);
-      _velocities[p][d] = _dis(_rng);
-    }
-  }
-  for (size_t p = 0; p < _numP; ++p) {
-    if (p < _numP) {
-      initPBestPos(p);
-    } else {
-      throw std::out_of_range("Particle index is out of bounds");
-    }
-  }
-  _gBestPos = _pBestPos[0];
-  _gBestVal = _fun(_gBestPos, _D);
-#pragma omp critical
-  { updateGBestPos(); }
-  /*
-   // checks :
-   // Check size of _positions
-   cout << "_numP \n" << _numP << endl;
-   cout << "Size of _pos \n" << sizeof(_positions) << endl;
-   // Check size of elements of _positions
-   cout << "_D \n" << _D << endl;
-   for (int p = 0; p < _numP; ++p) {
-     for (int d = 0; d < _D; ++d) {
-       cout << "_positions complete p|d :" << p << " | " << d
-            << "| vla = " << _positions[p][d] << endl;
-     }
-   }
-    */
+template <typename T, typename Fun> Swarm<T, Fun>::~Swarm() {
+  deallocateMemory();
 }
 
+//Public methods
 template <typename T, typename Fun> void Swarm<T, Fun>::update() {
   // updateGBestPos();
   // #pragma omp parallel for num_threads(_numP)
@@ -87,6 +80,7 @@ template <typename T, typename Fun> void Swarm<T, Fun>::update() {
     }
   }
 }
+
 
 template <typename T, typename Fun> void Swarm<T, Fun>::solve() {
   auto start = high_resolution_clock::now();
@@ -113,7 +107,7 @@ void Swarm<T, Fun>::updateVelocity(const T **&velocities) {}
 
 template <typename T, typename Fun> void Swarm<T, Fun>::updatePBestPos() {
   for (int p = 0; p < _numP; ++p) {
-    if (_fun(_positions[p], _D) < _fun(_pBestPos[p], _D)) {
+    if (_fun(_positions[p]) < _fun(_pBestPos[p])) {
       _pBestPos[p] = _positions[p];
     }
   }
@@ -126,8 +120,8 @@ template <typename T, typename Fun> void Swarm<T, Fun>::updateGBestPos() {
   size_t id_best = 0;
   // #pragma omp parallel for shared(id_best)
   for (size_t id = 0; id < _numP; ++id) {
-    double valfun_Id = _fun(_positions[id], _D);
-    if (valfun_Id < _fun(_positions[id_best], _D && valfun_Id < _gBestVal)) {
+    double valfun_Id = _fun(_positions[id]);
+    if (valfun_Id < _fun(_positions[id_best]) && valfun_Id < _gBestVal) {
       _gBestVal = valfun_Id;
       id_best = id;
       cout << "New Global best : " << _gBestVal << endl;
@@ -137,7 +131,7 @@ template <typename T, typename Fun> void Swarm<T, Fun>::updateGBestPos() {
 
 template <typename T, typename Fun>
 void Swarm<T, Fun>::updateWC(T *GBPos_previous) {
-  if (_gBestVal < _fun(GBPos_previous, _D)) {
+  if (_gBestVal < _fun(GBPos_previous)) {
     _w = min(_w * 1.2, 0.9);
     if (abs(_w - 0.9) < eps) {
       _w *= 0.95;
@@ -324,15 +318,10 @@ template <typename T, typename Fun> void Swarm<T, Fun>::allocateMemory() {
   }
 }
 template <typename T, typename Fun> void Swarm<T, Fun>::deallocateMemory() {
-  for (size_t i = 0; i < _numP; ++i) {
-    delete[] _positions[i];
-    delete[] _velocities[i];
-    delete[] _pBestPos[i];
-  }
   delete[] _positions;
   delete[] _velocities;
   delete[] _pBestPos;
   delete[] _gBestPos;
 }
 
-template class Swarm<double, std::function<double(double *, size_t)>>;
+template class Swarm<double, std::function<double(double *)>>;

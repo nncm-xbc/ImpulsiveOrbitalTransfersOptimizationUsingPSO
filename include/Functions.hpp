@@ -3,34 +3,51 @@
 
 #include <cmath>
 #include <vector>
+#include <functional>
+#include "Swarm.hpp"
 
 using namespace std;
 
 namespace Function {
 // Rosenbrock function parameter
-constexpr double aR = 1.0;
-constexpr double bR = 100.0;
+const double aR = 1.0;
+const double bR = 100.0;
 // Ackley function parameters
-constexpr double aA = 20.0;
-constexpr double bA = 0.2;
-constexpr double cA = 2 * M_PI;
+const double aA = 20.0;
+const double bA = 0.2;
+const    double cA = 2 * M_PI;
 
 template <typename T> double Rosenbrock(double *x, size_t sizeX) {
   double result = 0;
-  for (size_t i = 0; i < sizeX; ++i) {
+  for (size_t i = 0; i < sizeX - 1; ++i) {
     result += (aR - x[i]) * (aR - x[i]) +
               bR * (x[i + 1] - x[i] * x[i]) * (x[i + 1] - x[i] * x[i]);
   }
   return result;
 }
 
-template <typename T> double Sphere(double *x, size_t sizeX) {
-  double result = 0;
-  for (size_t i = 0; i < sizeX; ++i) {
-    result += x[i] * x[i];
-  }
-  return result;
+template <typename T> double Sphere(const Swarm<T, std::function<double(double *)>>& swarm) {
+    size_t dim = swarm.getD();
+    size_t numP = swarm.getNumP();
+    for ( int i=0; i<numP; i++) {
+        double *x = swarm.getPositions(i);
+        if (dim != 2) {
+
+            cout << "Dimensions of X : " << dim << endl;
+            cout << "x[0]: " << x[0] << endl;
+            cout << "x[1]: " << x[1] << endl;
+            // Handle the error or throw an exception
+            throw std::out_of_range("Dim exceeds the size of the x array");
+        }
+
+        double result = 0;
+        for (size_t i = 0; i < dim; ++i) {
+            result += x[i] * x[i];
+        }
+        return result;
+    }
 }
+
 
 template <typename T> T Ackley(double *x, size_t sizeX) {
   T sum1 = 0;
@@ -78,5 +95,4 @@ template <typename T> T Shaffer(double *x, size_t sizeX) {
   return result;
 }
 } // namespace Function
-
 #endif

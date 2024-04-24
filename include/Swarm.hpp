@@ -10,13 +10,15 @@ using namespace std;
 template <typename T, typename Fun> class Swarm {
 public:
   // Constructor
-  Swarm(const size_t &numP, const size_t &D);
+  Swarm(const size_t &numP, const size_t &D, const size_t &max_iter, const T &tol, const T &w,
+                           const T &c1, const T &c2, const double &posMin,
+                           const double &posMax, const Fun &fun);
   Swarm() = default;
   // Destructor
   ~Swarm();
 
   // Public interfaces
-  void init(const size_t &max_iter, const T &tol, const T &w, const T &c1,
+  void init(const size_t &numP, const size_t &D, const size_t &max_iter, const T &tol, const T &w, const T &c1,
             const T &c2, const double &posMin, const double &posMax,
             const Fun &fun);
   void update();

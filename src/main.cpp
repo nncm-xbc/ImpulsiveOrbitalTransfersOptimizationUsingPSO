@@ -21,39 +21,20 @@ int main() {
   double w = 0.5;
   double c1 = 1.5, c2 = 1.5;
   double posMin = -5, posMax = 5;
-  // string functionName = "2";
 
-  function<double(double *, size_t)> fun =
-      static_cast<double (*)(double *, size_t)>(Function::Rosenbrock<double>);
   using SwarmType = Swarm<double, decltype(fun)>;
-  /*
-  if (functionName == "1") {
-    fun = Function::Rosenbrock<double>;
-  } else if (functionName == "2") {
-    fun = Function::Sphere<double, size_t>;
-  } else if (functionName == "3") {
-    fun = Function::Ackley<double>;
-  } else if (functionName == "4") {
-    fun = Function::Griewank<double>;
-  } else if (functionName == "5") {
-    fun = Function::Rastrigin<double>;
-  } else if (functionName == "6") {
-    fun = Function::Shaffer<double>;
-  } else {
-    cerr << "Invalid function name. Exiting." << endl;
-    return 1;
-  }
-  */
+
   vector<SwarmType> master;
   master.reserve(num_sswarms);
 
-  // #pragma omp parallel for num_threads(num_sswarms) shared(master)
+  // #pragma omp paralle  l for num_threads(num_sswarms) shared(master)
   for (size_t sub_swarm_id = 0; sub_swarm_id < num_sswarms; ++sub_swarm_id) {
-    SwarmType subSwarm(numP, D);
-    subSwarm.allocateMemory();
+    SwarmType sub_swarm(numP, D, max_iter, tol, w, c1, c2, posMin, posMax, fun);
+    auto fun = [&SwarmType] {
+      return Function::Sphere<double>(Swarm);
+    };
     // #pragma omp critical
-    master.emplace_back(subSwarm);
-    master[sub_swarm_id].init(max_iter, tol, w, c1, c2, posMin, posMax, fun);
+    master.emplace_back(sub_swarm);
   }
   // #pragma omp barrier
   // #pragma omp parallel for num_threads(num_sswarms) shared(master)
@@ -65,10 +46,6 @@ int main() {
     sub_swarm.info();
   }
   // #pragma omp barrier
-  // #pragma omp parallel for num_threads(num_sswarms) shared(master)
-  for (SwarmType &sub_swarm : master) {
-    sub_swarm.deallocateMemory();
-  }
   return 0;
 }
 #endif

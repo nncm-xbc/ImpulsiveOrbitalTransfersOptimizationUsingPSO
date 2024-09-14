@@ -1,64 +1,51 @@
 #ifndef SWARM_HPP
 #define SWARM_HPP
 
-#include <functional>
-#include <random>
+#include "Particle.hpp"
 #include <vector>
 
-using namespace std;
-
-template <typename T, typename Fun> class Swarm {
+template <typename T, typename Fun>
+class Swarm {
 public:
   // Constructor
-  Swarm(const size_t &numP, const size_t &D, const size_t &max_iter, const T &tol, const T &w,
-                           const T &c1, const T &c2, const double &posMin,
-                           const double &posMax, const Fun &fun);
+  Swarm(const size_t &numParticles,
+        const size_t &dimension,
+        const Fun &objectiveFunction);
+
   Swarm() = default;
+
   // Destructor
   ~Swarm();
 
   // Public interfaces
-  void init(const size_t &numP, const size_t &D, const size_t &max_iter, const T &tol, const T &w, const T &c1,
-            const T &c2, const double &posMin, const double &posMax,
-            const Fun &fun);
-  void update();
-  void solve();
-  void printResults(const std::vector<double> &convergenceHistory,
-                    double computationTime, int numFuncEvaluations) const;
+  void init(const size_t &numParticles,
+            const size_t &dimension, 
+            const Fun &objectiveFunction
+    );
+  
   void info() const;
 
+  //Update logic
+  void initPBestPos(Particle<T, Fun> &particle);
+  void updatePosition(Particle<T, Fun> &particle);
+  void updateVelocity(Particle<T, Fun> &particle);
+  void updatePBestPos(Particle<T, Fun> &particle);
+  void updatePBestVal(Particle<T, Fun> &particle);
+  void updateGBestPos();
+
   // Setters
-  void setNumP(const size_t &N);
-  void setD(const size_t &D);
-  void setW(const double &w);
-  void setC1(const double &c1);
-  void setC2(const double &c2);
-  void setVelMax(const double &velMax);
-  void setPosMin(const double &posMin);
-  void setPosMax(const double &posMax);
-  void setFun(const Fun &fun);
-  void setTol(const double &tol);
-  void setMaxIter(const size_t &max_iter);
-  void setRng();
-  void setPBestPos(size_t &id);
+  void setNumParticles(const size_t &numParticles);
+  void setDimension(const size_t &dimension);
+  void setObjectiveFunction(const Fun &objectiveFunction);
 
   // Getters
-  size_t getNumP() const;
-  size_t getD() const;
-  double getW() const;
-  double getC1() const;
-  double getC2() const;
-  double getVelMax() const;
-  double getPosMin() const;
-  double getPosMax() const;
-  double *getPosition(size_t &id) const;
-  double *getVelocity(size_t &id) const;
-  T *getPBestPos(size_t &id) const;
-  T *getGBestPos() const;
-  double getPBestVal() const;
-  double getGBestVal() const;
-  Fun getFun() const;
-  double getTol() const;
+  size_t getNumParticles() const;
+  size_t getDimension() const;
+  Fun getObjectiveFunction() const;
+  std::vector<T> getPosition(Particle<T, Fun> &particle) const;
+  std::vector<T> getVelocity(Particle<T, Fun> &particle) const;
+  std::vector<T> getGlobalBestPosition() const;
+  double getGlobalBestValue() const;
 
   // Memory management
   void allocateMemory();
@@ -66,34 +53,12 @@ public:
 
 private:
   // Private variables
-  double **_positions;
-  double **_velocities;
-  double **_pBestPos;
-  double *_gBestPos;
-  double _pBestVal;
-  double _gBestVal;
-  size_t _numP;
-  size_t _D;
-  double _w;
-  double _c1;
-  double _c2;
-  double _velMax;
-  double _posMin;
-  double _posMax;
-  Fun _fun;
-  double _tol;
-  mt19937 _rng;
-  uniform_real_distribution<T> _dis;
-  size_t _max_iter;
-
-  // Private setters
-  void initPBestPos(size_t &id);
-  void updatePosition(T **&positions);
-  void updateVelocity(const T **&velocities);
-  void updatePBestPos();
-  void updatePBestVal(const double &pBestVal);
-  void updateGBestPos();
-  void updateWC(T *GBPos_previous);
+  size_t _numParticles;
+  size_t _Dimension;
+  Fun _objectiveFunction;
+  std::vector<Particle<T, Fun>> _particles;
+  std::vector<T> _gBestPos;
+  T _gBestVal;
 };
 
 #endif

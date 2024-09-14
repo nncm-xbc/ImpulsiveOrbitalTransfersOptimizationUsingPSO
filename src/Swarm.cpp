@@ -4,9 +4,6 @@
 #include <omp.h>
 #include <random>
 
-using namespace std;
-using namespace chrono;
-
 double eps = numeric_limits<double>::epsilon();
 
 // Constructor
@@ -325,3 +322,118 @@ template <typename T, typename Fun> void Swarm<T, Fun>::deallocateMemory() {
 }
 
 template class Swarm<double, std::function<double(double *)>>;
+
+
+
+
+
+
+
+#include "Swarm.hpp"
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <omp.h>
+
+template <typename T, typename Fun>
+Swarm<T, Fun>::Swarm(const size_t &numParticles, const size_t &dimension, const Fun &objectiveFunction)
+    : _numParticles(numParticles), _Dimension(dimension), _objectiveFunction(objectiveFunction) {
+    allocateMemory();
+}
+
+template <typename T, typename Fun>
+Swarm<T, Fun>::~Swarm() {
+    deallocateMemory();
+}
+
+template <typename T, typename Fun>
+void Swarm<T, Fun>::init(const size_t &numParticles, const size_t &dimension, const Fun &objectiveFunction) {
+    _numParticles = numParticles;
+    _Dimension = dimension;
+    _objectiveFunction = objectiveFunction;
+    _particles.resize(numParticles, Particle<T, Fun>(objectiveFunction, dimension));
+    _gBestPos.resize(dimension);
+    _gBestVal = std::numeric_limits<T>::max();
+}
+
+template <typename T, typename Fun>
+void Swarm<T, Fun>::info() const {
+    std::cout << "Swarm Information:" << std::endl;
+    std::cout << "Number of Particles: " << _numParticles << std::endl;
+    std::cout << "Dimension: " << _Dimension << std::endl;
+    std::cout << "Global Best Value: " << _gBestVal << std::endl;
+}
+
+template <typename T, typename Fun>
+void Swarm<T, Fun>::initPBestPos(Particle<T, Fun> &particle) {
+    particle.setBestPosition(particle.getPosition());
+    particle.setBestValue(particle.getValue());
+}
+
+template <typename T, typename Fun>
+void Swarm<T, Fun>::updatePosition(Particle<T, Fun> &particle) {
+    std::vector<T> newPosition = particle.getPosition();
+    const std::vector<T>& velocity = particle.getVelocity();
+    
+    for (size_t i = 0; i < _Dimension; ++i) {
+        newPosition[i] += velocity[i];
+    }
+    
+    particle.setPosition(newPosition);
+    particle.setValue(_objectiveFunction(newPosition.data()));
+}
+
+template <typename T, typename Fun>
+void Swarm<T, Fun>::updateVelocity(Particle<T, Fun> &particle) {
+    std::vector<T> newVelocity(particle.getVelocity());
+    const std::vector<T>& position = particle.getPosition();
+    const std::vector<T>& pBest = particle.getBestPosition();
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+    
+    for (size_t i = 0; i < _Dimension; ++i) {
+        T r1 = dis(gen);
+        T r2 = dis(gen);
+        newVelocity[i] = 0.729 * (newVelocity[i] +
+                                  2.05 * r1 * (pBest[i] - position[i]) +
+                                  2.05 * r2 * (_gBestPos[i] - position[i]));
+    }
+    
+    particle.setVelocity(newVelocity);
+}
+
+template <typename T, typename Fun>
+void Swarm<T, Fun>::updatePBestPos(Particle<T, Fun> &particle) {
+    if (particle.getValue() < particle.getBestValue()) {
+        particle.setBestPosition(particle.getPosition());
+        particle.setBestValue(particle.getValue());
+    }
+}
+
+template <typename T, typename Fun>
+void Swarm<T, Fun>::updatePBestVal(Particle<T, Fun> &particle) {
+    particle.setBestValue(_objectiveFunction(particle.getBestPosition().data()));
+}
+
+template <typename T, typename Fun>
+void Swarm<T, Fun>::updateGBestPos() {
+    #pragma omp parallel for
+    for (size_t i = 0; i < _numParticles; ++i) {
+        if (_particles[i].getBestValue() < _gBestVal) {
+            #pragma omp critical
+            {
+                if (_particles[i].getBestValue() < _gBestVal) {
+                    _gBestVal = _particles[i].getBestValue();
+                    _gBestPos = _particles[i].getBestPosition();
+                }
+            }
+        }
+    }
+}
+
+// Implement other methods (setters, getters, memory management) here...
+
+// Explicit instantiation
+template class Swarm<double, std::function<double(double*)>>;

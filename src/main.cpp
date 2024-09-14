@@ -5,7 +5,7 @@
 #include <omp.h>
 #include <vector>
 
-#include "Functions.hpp"
+#include "OrbitTransfer.hpp"
 #include "Swarm.hpp"
 
 using namespace std;
@@ -22,7 +22,8 @@ int main() {
   double c1 = 1.5, c2 = 1.5;
   double posMin = -5, posMax = 5;
 
-  using SwarmType = Swarm<double, decltype(fun)>;
+  using SwarmType = Swarm<double, std::function<double(double *, size_t)>>;
+  std::function<double(double *, )> fun = &Function::Rosenbrock<double>;
 
   vector<SwarmType> master;
   master.reserve(num_sswarms);
@@ -30,9 +31,6 @@ int main() {
   // #pragma omp paralle  l for num_threads(num_sswarms) shared(master)
   for (size_t sub_swarm_id = 0; sub_swarm_id < num_sswarms; ++sub_swarm_id) {
     SwarmType sub_swarm(numP, D, max_iter, tol, w, c1, c2, posMin, posMax, fun);
-    auto fun = [&SwarmType] {
-      return Function::Sphere<double>(Swarm);
-    };
     // #pragma omp critical
     master.emplace_back(sub_swarm);
   }

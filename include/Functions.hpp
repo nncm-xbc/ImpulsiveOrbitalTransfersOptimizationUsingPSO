@@ -30,7 +30,7 @@ template <typename T> double Sphere(const Swarm<T, std::function<double(double *
     size_t dim = swarm.getD();
     size_t numP = swarm.getNumP();
     for ( int i=0; i<numP; i++) {
-        double *x = swarm.getPositions(i);
+        double *x = swarm.getPosition(i);
         if (dim != 2) {
 
             cout << "Dimensions of X : " << dim << endl;

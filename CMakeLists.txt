@@ -3,13 +3,26 @@ project(PSO)
 
 set(CMAKE_CXX_STANDARD 20)
 
-find_package(OpenMP)
+set(GTEST_ROOT /usr/src/gtest)
+set(GTEST_INCLUDE_DIR ${GTEST_ROOT}/include)
+set(GTEST_LIBRARY ${GTEST_ROOT}/lib/libgtest.a)
+set(GTEST_MAIN_LIBRARY ${GTEST_ROOT}/lib/libgtest_main.a)
 
+find_package(GTest REQUIRED)
+if(GTest_FOUND)
+    message("-- Google Test was found")
+    include_directories(${GTEST_INCLUDE_DIRS})
+else()
+    message(FATAL_ERROR "Google Test not found. Please install it.")
+endif()
+
+find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
     message("-- OpenMP was found")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 ${OpenMP_CXX_FLAGS}")
+    add_definitions(-DUSE_OPENMP)
 else()
-    message("-- OpenMP not found")
+    message("-- OpenMP not found. Building without OpenMP support.")
     set(CMAKE_CXX_FLAGS "-O3")
 endif()
 
@@ -21,6 +34,7 @@ file(GLOB SOURCES "src/*.cpp")
 
 add_executable(PSO_EXEC ${SOURCES})
 
-if(OpenMP_CXX_FOUND)
-    target_link_libraries(PSO_EXEC PUBLIC OpenMP::OpenMP_CXX)
-endif()
+target_link_libraries(PSO_EXEC PUBLIC 
+    ${GTEST_LIBRARIES}
+    $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>
+)

@@ -10,7 +10,10 @@ public:
   // Constructor
   Swarm(const size_t &numParticles,
         const size_t &dimension,
-        const Fun &objectiveFunction);
+        const Fun &objectiveFunction,
+        const T inertiaWeight,
+        const T cognitiveWeight,
+        const T socialWeight);
 
   Swarm() = default;
 
@@ -20,8 +23,10 @@ public:
   // Public interfaces
   void init(const size_t &numParticles,
             const size_t &dimension, 
-            const Fun &objectiveFunction
-    );
+            const Fun &objectiveFunction,
+            const T &inertiaWeight,
+            const T &cognitiveWeight,
+            const T &socialWeight);
   
   void info() const;
 
@@ -37,11 +42,17 @@ public:
   void setNumParticles(const size_t &numParticles);
   void setDimension(const size_t &dimension);
   void setObjectiveFunction(const Fun &objectiveFunction);
+  void setInertiaWeight(const T &inertiaWeight);
+  void setCognitiveWeight(const T &cognitiveWeight);
+  void setSocialWeight(const T &socialWeight);
 
   // Getters
   size_t getNumParticles() const;
   size_t getDimension() const;
   Fun getObjectiveFunction() const;
+  T getInertiaWeight() const;
+  T getCognitiveWeight() const;
+  T getSocialWeight() const;
   std::vector<T> getPosition(Particle<T, Fun> &particle) const;
   std::vector<T> getVelocity(Particle<T, Fun> &particle) const;
   std::vector<T> getGlobalBestPosition() const;
@@ -56,9 +67,14 @@ private:
   size_t _numParticles;
   size_t _Dimension;
   Fun _objectiveFunction;
+  T _inertiaWeight;
+  T _cognitiveWeight;
+  T _socialWeight;
   std::vector<Particle<T, Fun>> _particles;
   std::vector<T> _gBestPos;
   T _gBestVal;
+  std::mt19937 _rng; 
+  std::uniform_real_distribution<double> _dis;
 };
 
 #endif

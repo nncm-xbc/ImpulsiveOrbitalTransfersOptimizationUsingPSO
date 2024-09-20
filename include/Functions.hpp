@@ -26,26 +26,13 @@ template <typename T> double Rosenbrock(double *x, size_t sizeX) {
   return result;
 }
 
-template <typename T> double Sphere(const Swarm<T, std::function<double(double *)>>& swarm) {
-    size_t dim = swarm.getD();
-    size_t numP = swarm.getNumP();
-    for ( int i=0; i<numP; i++) {
-        double *x = swarm.getPosition(i);
-        if (dim != 2) {
-
-            cout << "Dimensions of X : " << dim << endl;
-            cout << "x[0]: " << x[0] << endl;
-            cout << "x[1]: " << x[1] << endl;
-            // Handle the error or throw an exception
-            throw std::out_of_range("Dim exceeds the size of the x array");
-        }
-
-        double result = 0;
-        for (size_t i = 0; i < dim; ++i) {
-            result += x[i] * x[i];
-        }
-        return result;
+template <typename T>
+T Sphere(std::vector<T>& x) {
+    T result = 0;
+    for (const auto& xi : x) {
+        result += xi * xi;
     }
+    return result;
 }
 
 

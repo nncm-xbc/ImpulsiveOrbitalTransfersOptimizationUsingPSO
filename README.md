@@ -14,7 +14,7 @@ When a particle takes part of the swarm into consideration, it is a local best v
 
 We have the following update rules for the position and the velocity at a given time step $t$ and for a given particle i:
 
-$$ v^{t+1}_{i}=\underbrace{w\*v^{t}_{i}}_{\text{inertia component}}*\underbrace{c1*r1\*(pBest^{t}_{i}-x^{t}_{i})}_{\text{cognitive component}}*\underbrace{c2*r2\*(gBest^{t}_{i}- x^{t}_{i})}\_{\text{social component}} $$
+$$ v^{t+1}_{i}= (w * v^{t}_{i})_{\text{inertia component}} * c1 * r1 * (pBest^{t}_{i}-x^{t}_{i})_{\text{cognitive component}} * c2 * r2 * (gBest^{t}_{i}- x^{t}_{i})_{\text{social component}} $$
 
 and the position update rule:
 

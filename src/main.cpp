@@ -1,49 +1,35 @@
-#if defined(_OPENMP)
-
-#include <functional>
 #include <iostream>
-#include <omp.h>
-#include <vector>
-
-#include "OrbitTransfer.hpp"
-#include "Swarm.hpp"
-
-using namespace std;
-using namespace Function;
+#include <functional>
+#include "PSO.hpp"
+#include "Functions.hpp"
 
 int main() {
+    // Define problem parameters
+    const size_t numParticles = 30;
+    const size_t dimension = 2;
+    const size_t maxIterations = 1000;
+    const double tolerance = 1e-6;
+    const double inertiaWeight = 0.7;
+    const double cognitiveWeight = 1.5;
+    const double socialWeight = 1.5;
 
-  size_t D = 2;
-  size_t max_iter = 1000000;
-  double tol = 1e-6;
-  size_t numP = 10;
-  size_t num_sswarms = 1;
-  double w = 0.5;
-  double c1 = 1.5, c2 = 1.5;
-  double posMin = -5, posMax = 5;
+    // Choose the objective function (Sphere function in this case)
+    auto objectiveFunction = Function::Sphere<const std::vector<T>>;
 
-  using SwarmType = Swarm<double, std::function<double(double *, size_t)>>;
-  std::function<double(double *, )> fun = &Function::Rosenbrock<double>;
+    // Create PSO instance
+    PSO<double, std::function<double(double*)>> pso(
+        numParticles, dimension, maxIterations, tolerance,
+        inertiaWeight, cognitiveWeight, socialWeight, objectiveFunction);
 
-  vector<SwarmType> master;
-  master.reserve(num_sswarms);
+//PSO(size_t numParticles, size_t dimension, size_t maxIterations, 
+//    T tolerance, T inertiaWeight, T cognitiveWeight, T socialWeight, const Fun& objectiveFunction)
 
-  // #pragma omp paralle  l for num_threads(num_sswarms) shared(master)
-  for (size_t sub_swarm_id = 0; sub_swarm_id < num_sswarms; ++sub_swarm_id) {
-    SwarmType sub_swarm(numP, D, max_iter, tol, w, c1, c2, posMin, posMax, fun);
-    // #pragma omp critical
-    master.emplace_back(sub_swarm);
-  }
-  // #pragma omp barrier
-  // #pragma omp parallel for num_threads(num_sswarms) shared(master)
-  for (SwarmType &sub_swarm : master) {
-    sub_swarm.solve();
-  }
-  // #pragma omp barrier
-  for (SwarmType &sub_swarm : master) {
-    sub_swarm.info();
-  }
-  // #pragma omp barrier
-  return 0;
+
+    // Solve the optimization problem
+    pso.solve();
+
+    // Print results
+    pso.printResults();
+
+    return 0;
 }
-#endif

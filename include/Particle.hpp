@@ -23,12 +23,12 @@ class Particle {
         //Getters
         std::vector<T>& getPosition();
         std::vector<T>& getVelocity();
-        const std::vector<T>& getBestPosition() const;
-        const T& getValue() const;
-        const T& getBestValue() const;
+        std::vector<T>& getBestPosition();
+        T& getValue();
+        T& getBestValue();
 
     private:
-        size_t _D; // Problem dimension
+        size_t _dimension; // Problem dimension
 
         std::vector<T> _position;
         std::vector<T> _velocity;
@@ -39,15 +39,15 @@ class Particle {
 // Constructor
 template <typename T, typename Fun>
 Particle<T, Fun>::Particle(const Fun& objectiveFunction, const size_t& dimension, std::mt19937& rng, std::uniform_real_distribution<>& dis) 
-: _D(dimension), _position(dimension), _velocity(dimension), _bestPosition(dimension) {
+: _dimension(dimension), _position(dimension), _velocity(dimension), _bestPosition(dimension) {
 
-        for (size_t i = 0; i < _D; ++i) {
+        for (size_t i = 0; i < _dimension; ++i) {
             _position[i] = dis(rng);
             _velocity[i] = dis(rng);
         }
 
         _bestPosition = _position;
-        _value = objectiveFunction(_position);
+        _value = objectiveFunction(_position.data(), _dimension);
         _bestValue = _value;
     }    
 
@@ -89,17 +89,17 @@ template <typename T, typename Fun>
     }
 
 template <typename T, typename Fun>
-    const std::vector<T>& Particle<T, Fun>::getBestPosition() const {
+    std::vector<T>& Particle<T, Fun>::getBestPosition() {
         return _bestPosition;
     }
 
 template <typename T, typename Fun>
-    const T& Particle<T, Fun>::getValue() const {
+    T& Particle<T, Fun>::getValue() {
         return _value;
     }
 
 template <typename T, typename Fun>
-    const T& Particle<T, Fun>::getBestValue() const {
+    T& Particle<T, Fun>::getBestValue() {
         return _bestValue;
     }
 

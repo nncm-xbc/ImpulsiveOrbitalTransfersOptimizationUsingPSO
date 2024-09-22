@@ -7,7 +7,7 @@ template <typename T, typename Fun>
 class PSO {
 public:
     PSO(size_t numParticles, size_t dimension, size_t maxIterations, 
-        T tolerance, T inertiaWeight, T cognitiveWeight, T socialWeight, const Fun& objectiveFunction);
+        T tolerance, T inertiaWeight, T cognitiveWeight, T socialWeight, Fun& objectiveFunction);
 
     void initialize();
     void solve();

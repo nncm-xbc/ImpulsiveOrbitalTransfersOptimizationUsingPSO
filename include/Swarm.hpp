@@ -31,7 +31,6 @@ public:
   void info() const;
 
   //Update logic
-  void initPBestPos(Particle<T, Fun> &particle);
   void updatePosition(Particle<T, Fun> &particle);
   void updateVelocity(Particle<T, Fun> &particle);
   void updatePBestPos(Particle<T, Fun> &particle);
@@ -59,18 +58,18 @@ public:
   double getGlobalBestValue() const;
 
   // Memory management
-  void allocateMemory();
   void deallocateMemory();
+
+  std::vector<Particle<T, Fun>> particles;
 
 private:
   // Private variables
   size_t _numParticles;
-  size_t _Dimension;
+  size_t _dimension;
   Fun _objectiveFunction;
   T _inertiaWeight;
   T _cognitiveWeight;
   T _socialWeight;
-  std::vector<Particle<T, Fun>> _particles;
   std::vector<T> _gBestPos;
   T _gBestVal;
   std::mt19937 _rng; 

@@ -6,7 +6,7 @@
 
 template <typename T, typename Fun>
 PSO<T, Fun>::PSO(size_t numParticles, size_t dimension, size_t maxIterations, 
-                 T tolerance, T inertiaWeight, T cognitiveWeight, T socialWeight, const Fun& objectiveFunction)
+                 T tolerance, T inertiaWeight, T cognitiveWeight, T socialWeight, Fun& objectiveFunction)
     : swarm(numParticles, dimension, objectiveFunction, inertiaWeight, cognitiveWeight, socialWeight),
       _maxIterations(maxIterations),
       _tolerance(tolerance),
@@ -21,6 +21,7 @@ template <typename T, typename Fun>
 void PSO<T, Fun>::initialize() {
     swarm.init(swarm.getNumParticles(), swarm.getDimension(), swarm.getObjectiveFunction(),
                swarm.getInertiaWeight(), swarm.getCognitiveWeight(), swarm.getSocialWeight());
+    swarm.info();
 }
 
 template <typename T, typename Fun>
@@ -31,20 +32,20 @@ void PSO<T, Fun>::solve() {
         std::vector<T> GBPos_previous = swarm.getGlobalBestPosition();
         
         for (size_t i = 0; i < swarm.getNumParticles(); ++i) {
-            auto& particle = swarm._particles[i];
+            auto& particle = swarm.particles[i];
             swarm.updateVelocity(particle);
             swarm.updatePosition(particle);
             swarm.updatePBestPos(particle);
         }
-        
         swarm.updateGBestPos();
+        
         updateWC(GBPos_previous);
         
         _convergenceHistory.push_back(swarm.getGlobalBestValue());
         
-        if (checkConvergence(iter, GbestValue, GbestPos) = true) {
+        /*if (checkConvergence(iter, GbestValue, GbestPos) = true) {
             break;
-        }
+        }*/
     }
 }
 
@@ -62,8 +63,14 @@ void PSO<T, Fun>::printResults() const {
 
 template <typename T, typename Fun>
 void PSO<T, Fun>::updateWC(std::vector<T> GBPos_previous) {
-    // Implement the weighted constraint update logic
+    // The weight is updated based on the distance between the previous and current global best positions
+    T distance = 0.0;
+    for (size_t i = 0; i < GBPos_previous.size(); ++i) {
+        distance += std::pow(GBPos_previous[i] - swarm.getGlobalBestPosition()[i], 2);
+    }
+    distance = std::sqrt(distance);
+
 }
 
 // Explicit instantiation
-template class PSO<double, std::function<double(double*)>>;
+template class PSO<double, std::function<double(double*, size_t)>>;

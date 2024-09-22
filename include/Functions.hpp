@@ -27,10 +27,10 @@ template <typename T> double Rosenbrock(double *x, size_t sizeX) {
 }
 
 template <typename T>
-T Sphere(std::vector<T>& x) {
+T Sphere(T* x, size_t sizeX) {
     T result = 0;
-    for (const auto& xi : x) {
-        result += xi * xi;
+    for (size_t i = 0; i < sizeX; ++i) {
+        result += x[i] * x[i];
     }
     return result;
 }
@@ -81,5 +81,5 @@ template <typename T> T Shaffer(double *x, size_t sizeX) {
                 ((1 + 0.001 * term) * (1 + 0.001 * term));
   return result;
 }
-} // namespace Function
+} 
 #endif

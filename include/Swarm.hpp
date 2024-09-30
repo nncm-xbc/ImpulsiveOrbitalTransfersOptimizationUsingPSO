@@ -4,16 +4,12 @@
 #include "Particle.hpp"
 #include <vector>
 
-template <typename T, typename Fun>
-class Swarm {
+template <typename T, typename Fun> class Swarm {
 public:
   // Constructor
-  Swarm(const size_t &numParticles,
-        const size_t &dimension,
-        const Fun &objectiveFunction,
-        const T inertiaWeight,
-        const T cognitiveWeight,
-        const T socialWeight);
+  Swarm(const size_t &numParticles, const size_t &dimension,
+        const Fun &objectiveFunction, const T inertiaWeight,
+        const T cognitiveWeight, const T socialWeight);
 
   Swarm() = default;
 
@@ -21,16 +17,12 @@ public:
   ~Swarm();
 
   // Public interfaces
-  void init(const size_t &numParticles,
-            const size_t &dimension, 
-            const Fun &objectiveFunction,
-            const T &inertiaWeight,
-            const T &cognitiveWeight,
-            const T &socialWeight);
-  
-  void info() const;
+  void init(const size_t &numParticles, const size_t &dimension,
+            const Fun &objectiveFunction, const T &inertiaWeight,
+            const T &cognitiveWeight, const T &socialWeight);
 
-  //Update logic
+  void info() const;
+  // Update logic
   void updatePosition(Particle<T, Fun> &particle);
   void updateVelocity(Particle<T, Fun> &particle);
   void updatePBestPos(Particle<T, Fun> &particle);
@@ -72,7 +64,7 @@ private:
   T _socialWeight;
   std::vector<T> _gBestPos;
   T _gBestVal;
-  std::mt19937 _rng; 
+  std::mt19937 _rng;
   std::uniform_real_distribution<double> _dis;
 };
 

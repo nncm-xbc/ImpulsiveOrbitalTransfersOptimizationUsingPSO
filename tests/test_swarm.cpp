@@ -24,7 +24,6 @@ protected:
     }
 };
 
-// Test constructor and initialization
 TEST_F(SwarmTest, ConstructorAndInitialization) {
     EXPECT_EQ(swarm->getNumParticles(), numParticles);
     EXPECT_EQ(swarm->getDimension(), dimension);

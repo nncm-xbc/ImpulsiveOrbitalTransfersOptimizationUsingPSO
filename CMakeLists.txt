@@ -38,7 +38,7 @@ add_executable(PSO_EXEC src/main.cpp)
 target_link_libraries(PSO_EXEC PRIVATE PSO_lib)
 
 # Link OpenMP if found
-target_link_libraries(PSO_EXEC PRIVATE 
+target_link_libraries(PSO_EXEC PRIVATE
     $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>
 )
 
@@ -48,14 +48,15 @@ find_package(GTest REQUIRED)
 if(GTest_FOUND)
     message("-- Google Test was found")
     include_directories(${GTEST_INCLUDE_DIRS})
-    
+
     # Add test executable
     file(GLOB TEST_SOURCES "tests/*.cpp")
     add_executable(run_tests ${TEST_SOURCES})
-    
+
     # Link test executable with Google Test and main project
-    target_link_libraries(run_tests PRIVATE ${GTEST_BOTH_LIBRARIES} pthread PSO_lib)
-    
+    target_link_libraries(run_tests PRIVATE
+      ${GTEST_BOTH_LIBRARIES} pthread PSO_lib)
+
     # Add tests
     add_test(NAME PSO_tests COMMAND run_tests)
 else()

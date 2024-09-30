@@ -6,13 +6,12 @@
 
 class ParticleTest : public ::testing::Test {
 protected:
-    std::function<double(double *, size_t)> fun = &Function::Rosenbrock<double>;
+    std::function<double(double *, size_t)> fun = &Function::Sphere<double>;
     const size_t dimension = 2;
     std::mt19937 rng;
     std::uniform_real_distribution<> dis;
 };
 
-// Initialization test
 TEST_F(ParticleTest, ConstructorInitializesCorrectly) {
     Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
     EXPECT_EQ(particle.getPosition().size(), dimension);
@@ -72,11 +71,10 @@ TEST_F(ParticleTest, HandleIncorrectDimensionInput) {
     EXPECT_THROW(particle.setBestPosition(incorrectDimension), std::invalid_argument);
 }
 
-// Function object test
 TEST_F(ParticleTest, ObjectiveFunctionUsedCorrectly) {
     Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
     std::vector<double> position = {1.0, 2.0};
     particle.setPosition(position);
-    double expectedValue = Function::Rosenbrock<double>(position.data(), dimension);
+    double expectedValue = Function::Sphere<double>(position.data(), dimension);
     EXPECT_DOUBLE_EQ(particle.getValue(), expectedValue);
 }

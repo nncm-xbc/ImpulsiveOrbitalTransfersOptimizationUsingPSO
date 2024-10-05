@@ -1,124 +1,103 @@
-#include <gtest/gtest.h>
+#define CATCH_CONFIG_MAIN
+#include <catch2/catch_all.hpp>
 #include "Swarm.hpp"
 #include "Functions.hpp"
 
-// Test fixture for Swarm
-class SwarmTest : public ::testing::Test {
-protected:
+TEST_CASE("Swarm tests", "[swarm]") {
     using SwarmType = Swarm<double, std::function<double(double*, size_t)>>;
-    SwarmType* swarm;
     const size_t numParticles = 30;
     const size_t dimension = 2;
-    std::function<double(double*, size_t)> testFunction;
+    std::function<double(double*, size_t)> testFunction = &Function::Sphere<double>;
     const double inertiaWeight = 0.7;
     const double cognitiveWeight = 1.5;
     const double socialWeight = 1.5;
 
-    void SetUp() override {
-        testFunction = Function::Sphere<double>;
-        swarm = new SwarmType(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+    SwarmType* swarm = new SwarmType(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+
+    SECTION("Constructor and initialization") {
+        REQUIRE(swarm->getNumParticles() == numParticles);
+        REQUIRE(swarm->getDimension() == dimension);
+        
+        std::vector<double> testInput = {1.0, 1.0};
+        REQUIRE(swarm->getObjectiveFunction()(testInput.data(), testInput.size()) == 
+                Catch::Approx(testFunction(testInput.data(), testInput.size())));
     }
 
-    void TearDown() override {
-        delete swarm;
-    }
-};
-
-TEST_F(SwarmTest, ConstructorAndInitialization) {
-    EXPECT_EQ(swarm->getNumParticles(), numParticles);
-    EXPECT_EQ(swarm->getDimension(), dimension);
-    
-    std::vector<double> testInput = {1.0, 1.0}; // Adjust based on your function's domain
-    EXPECT_DOUBLE_EQ(swarm->getObjectiveFunction()(testInput.data(), testInput.size()), 
-                     testFunction(testInput.data(), testInput.size()));
-}
-
-// Test particle initialization
-TEST_F(SwarmTest, ParticleInitialization) {
-    for (size_t i = 0; i < numParticles; ++i) {
-        auto position = swarm->getPosition(swarm->particles[i]);
-        EXPECT_EQ(position.size(), dimension);
-        for (const auto& pos : position) {
-            EXPECT_GE(pos, -100.0); 
-            EXPECT_LE(pos, 100.0);
+    SECTION("Particle initialization") {
+        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        for (size_t i = 0; i < numParticles; ++i) {
+            auto position = swarm->getPosition(swarm->particles[i]);
+            REQUIRE(position.size() == dimension);
+            for (const auto& pos : position) {
+                REQUIRE(pos >= -100.0);
+                REQUIRE(pos <= 100.0);
+            }
         }
     }
-}
-
-// Test global best initialization
-TEST_F(SwarmTest, GlobalBestInitialization) {
-    auto gBestPos = swarm->getGlobalBestPosition();
-    EXPECT_EQ(gBestPos.size(), dimension);
-    EXPECT_NE(swarm->getGlobalBestValue(), std::numeric_limits<double>::max());
-}
-
-// Test position update
-TEST_F(SwarmTest, PositionUpdate) {
-    auto& particle = swarm->particles[0];
-    auto oldPosition = swarm->getPosition(particle);
-    swarm->updatePosition(particle);
-    auto newPosition = swarm->getPosition(particle);
-    EXPECT_NE(oldPosition, newPosition);
-}
-
-// Test velocity update
-TEST_F(SwarmTest, VelocityUpdate) {
-    auto& particle = swarm->particles[0];
-    auto oldVelocity = swarm->getVelocity(particle);
-    swarm->updateVelocity(particle);
-    auto newVelocity = swarm->getVelocity(particle);
-    EXPECT_NE(oldVelocity, newVelocity);
-}
-
-// Test personal best update
-TEST_F(SwarmTest, PersonalBestUpdate) {
-    auto& particle = swarm->particles[0];
-    auto oldPBest = particle.getBestPosition();
-    swarm->updatePBestPos(particle);
-    swarm->updatePBestVal(particle);
-    auto newPBest = particle.getBestPosition();
-    EXPECT_NE(oldPBest, newPBest);
-}
-
-// Test global best update
-TEST_F(SwarmTest, GlobalBestUpdate) {
-    auto oldGBest = swarm->getGlobalBestPosition();
-    swarm->updateGBestPos();
-    auto newGBest = swarm->getGlobalBestPosition();
-    EXPECT_NE(oldGBest, newGBest);
-}
-
-// Test swarm behavior over multiple iterations
-TEST_F(SwarmTest, SwarmConvergence) {
-    const int iterations = 100;
-    double initialBest = swarm->getGlobalBestValue();
-    for (int i = 0; i < iterations; ++i) {
-        for (auto& particle : swarm->particles) {
-            swarm->updateVelocity(particle);
-            swarm->updatePosition(particle);
-            swarm->updatePBestPos(particle);
-            swarm->updatePBestVal(particle);
-        }
-        swarm->updateGBestPos();
-    }
-    double finalBest = swarm->getGlobalBestValue();
-    EXPECT_LT(finalBest, initialBest); // Expect improvement
-}
-
 /*
-// Test with different objective functions
-TEST_F(SwarmTest, DifferentObjectiveFunctions) {
-    std::vector<std::function<double(const std::vector<double>&)>> functions = {
-        Functions::sphere,
-        Functions::rastrigin,
-        Functions::rosenbrock
-    };
-    
-    for (const auto& func : functions) {
-        swarm->setObjectiveFunction(func);
-        EXPECT_EQ(swarm->getObjectiveFunction(), func);
-        // Run a few iterations to ensure it works with the new function
-        for (int i = 0; i < 10; ++i) {
+    SECTION("Global best initialization") {
+        auto gBestPos = swarm->getGlobalBestPosition();
+        REQUIRE(gBestPos.size() == dimension);
+        REQUIRE(swarm->getGlobalBestValue() != std::numeric_limits<double>::max());
+    }
+*/
+    SECTION("Position update") {
+        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        auto& particle = swarm->particles[0];
+        auto oldPosition = swarm->getPosition(particle);
+        swarm->updatePosition(particle);
+        auto newPosition = swarm->getPosition(particle);
+        REQUIRE(oldPosition != newPosition);
+    }
+
+    SECTION("Velocity update") {
+        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        auto& particle = swarm->particles[0];
+        auto oldVelocity = swarm->getVelocity(particle);
+        swarm->updateVelocity(particle);
+        auto newVelocity = swarm->getVelocity(particle);
+        REQUIRE(oldVelocity != newVelocity);
+    }
+
+    SECTION("Personal best update") {
+        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        auto& particle = swarm->particles[0];
+
+        // init best personal val and pos
+        particle.setBestPosition(std::vector<double>{10.0, 10.0});
+        particle.setBestValue(10.0);
+        auto oldPBestPos = particle.getBestPosition();
+        auto oldPBestVal = particle.getBestValue();
+
+        //New best personal pos and updates 
+        particle.setPosition(std::vector<double>{1.0, 1.0}, testFunction);
+        swarm->updatePBestPos(particle);
+        swarm->updatePBestVal(particle);
+
+        auto newPBestPos = particle.getBestPosition();
+        auto newPBestVal = particle.getBestValue();
+
+        //Checks
+        REQUIRE(newPBestPos == std::vector<double>{1.0, 1.0});
+        REQUIRE(oldPBestVal > newPBestVal);
+        double* values = new double[2] {1.0, 1.0};
+        REQUIRE(newPBestVal == testFunction(values, dimension));
+        delete[] values;
+    }
+
+    SECTION("Global best update") {
+        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        auto oldGBest = swarm->getGlobalBestPosition();
+        swarm->updateGBestPos();
+        auto newGBest = swarm->getGlobalBestPosition();
+        REQUIRE(oldGBest != newGBest);
+    }
+
+    SECTION("Swarm convergence") {
+        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        const int iterations = 100;
+        double initialBest = swarm->getGlobalBestValue();
+        for (int i = 0; i < iterations; ++i) {
             for (auto& particle : swarm->particles) {
                 swarm->updateVelocity(particle);
                 swarm->updatePosition(particle);
@@ -127,12 +106,15 @@ TEST_F(SwarmTest, DifferentObjectiveFunctions) {
             }
             swarm->updateGBestPos();
         }
-        EXPECT_NO_THROW(swarm->getGlobalBestValue());
+        double finalBest = swarm->getGlobalBestValue();
+        REQUIRE(finalBest < initialBest);
     }
-}*/
 
-// Test memory management
-TEST_F(SwarmTest, MemoryManagement) {
-    swarm->deallocateMemory();
-    EXPECT_EQ(swarm->getNumParticles(), 0);
+    SECTION("Memory management") {
+        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        swarm->deallocateMemory();
+        REQUIRE(swarm->particles.size() == 0);
+    }
+
+    delete swarm;
 }

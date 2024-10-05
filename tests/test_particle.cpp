@@ -1,80 +1,70 @@
+#define CATCH_CONFIG_MAIN
+#include <catch2/catch_all.hpp>
 #include "Particle.hpp"
 #include "Functions.hpp"
-#include <gtest/gtest.h>
 #include <vector>
 #include <functional>
 
-class ParticleTest : public ::testing::Test {
-protected:
+TEST_CASE("Particle tests", "[particle]") {
     std::function<double(double *, size_t)> fun = &Function::Sphere<double>;
     const size_t dimension = 2;
     std::mt19937 rng;
     std::uniform_real_distribution<> dis;
-};
 
-TEST_F(ParticleTest, ConstructorInitializesCorrectly) {
-    Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
-    EXPECT_EQ(particle.getPosition().size(), dimension);
-    EXPECT_EQ(particle.getVelocity().size(), dimension);
-    EXPECT_EQ(particle.getBestPosition().size(), dimension);
+    SECTION("Constructor initializes correctly") {
+        Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
+        REQUIRE(particle.getPosition().size() == dimension);
+        REQUIRE(particle.getVelocity().size() == dimension);
+        REQUIRE(particle.getBestPosition().size() == dimension);
+    }
+
+    SECTION("Setter methods update correctly") {
+        Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
+        SECTION("Set position") {
+            std::vector<double> position = {1.0, 2.0};
+            particle.setPosition(position, fun);
+            REQUIRE(particle.getPosition() == position);
+        }
+
+        SECTION("Set velocity") {
+            std::vector<double> velocity = {1.0, 2.0};
+            particle.setVelocity(velocity);
+            REQUIRE(particle.getVelocity() == velocity);
+        }
+
+        SECTION("Set best position") {
+            std::vector<double> bestPosition = {1.0, 2.0};
+            particle.setBestPosition(bestPosition);
+            REQUIRE(particle.getBestPosition() == bestPosition);
+        }
+
+        SECTION("Set value") {
+            double value = 1.0;
+            particle.setValue(value);
+            REQUIRE(particle.getValue() == Catch::Approx(value));
+        }
+
+        SECTION("Set best value") {
+            double bestValue = 1.0;
+            particle.setBestValue(bestValue);
+            REQUIRE(particle.getBestValue() == Catch::Approx(bestValue));
+        }
+    }
+
+    SECTION("Handle incorrect dimension input") {
+        Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
+        std::vector<double> incorrectDimension = {1.0, 2.0, 3.0};
+        REQUIRE_THROWS_AS(particle.setPosition(incorrectDimension, fun), std::invalid_argument);
+        REQUIRE_THROWS_AS(particle.setVelocity(incorrectDimension), std::invalid_argument);
+        REQUIRE_THROWS_AS(particle.setBestPosition(incorrectDimension), std::invalid_argument);
+    }
+
+    SECTION("Objective function used correctly") {
+        Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
+        std::vector<double> position = {1.0, 2.0};
+        particle.setPosition(position, fun);
+        double expectedValue = Function::Sphere<double>(position.data(), dimension);
+        REQUIRE(particle.getValue() == Catch::Approx(expectedValue));
+    }
 }
 
-// Setter tests
-TEST_F(ParticleTest, SetPositionUpdatesCorrectly) {
-    Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
-    std::vector<double> position = {1.0, 2.0};
-    particle.setPosition(position);
-    EXPECT_EQ(particle.getPosition(), position);
-}
-
-TEST_F(ParticleTest, SetVelocityUpdatesCorrectly) {
-    Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
-    std::vector<double> velocity = {1.0, 2.0};
-    particle.setVelocity(velocity);
-    EXPECT_EQ(particle.getVelocity(), velocity);
-}
-
-TEST_F(ParticleTest, SetBestPositionUpdatesCorrectly) {
-    Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
-    std::vector<double> bestPosition = {1.0, 2.0};
-    particle.setBestPosition(bestPosition);
-    EXPECT_EQ(particle.getBestPosition(), bestPosition);
-}
-
-TEST_F(ParticleTest, SetValueUpdatesCorrectly) {
-    Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
-    double value = 1.0;
-    particle.setValue(value);
-    EXPECT_DOUBLE_EQ(particle.getValue(), value);
-}
-
-TEST_F(ParticleTest, SetBestValueUpdatesCorrectly) {
-    Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
-    double bestValue = 1.0;
-    particle.setBestValue(bestValue);
-    EXPECT_DOUBLE_EQ(particle.getBestValue(), bestValue);
-}
-/*
-// Corner case tests
-TEST_F(ParticleTest, HandleZeroDimensionParticle) {
-    EXPECT_THROW(
-        Particle<double, std::function<double(double *, size_t)>> particle(fun, 0, rng, dis),
-        std::invalid_argument
-    );
-}*/
-
-TEST_F(ParticleTest, HandleIncorrectDimensionInput) {
-    Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
-    std::vector<double> incorrectDimension = {1.0, 2.0, 3.0};
-    EXPECT_THROW(particle.setPosition(incorrectDimension), std::invalid_argument);
-    EXPECT_THROW(particle.setVelocity(incorrectDimension), std::invalid_argument);
-    EXPECT_THROW(particle.setBestPosition(incorrectDimension), std::invalid_argument);
-}
-
-TEST_F(ParticleTest, ObjectiveFunctionUsedCorrectly) {
-    Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
-    std::vector<double> position = {1.0, 2.0};
-    particle.setPosition(position);
-    double expectedValue = Function::Sphere<double>(position.data(), dimension);
-    EXPECT_DOUBLE_EQ(particle.getValue(), expectedValue);
-}

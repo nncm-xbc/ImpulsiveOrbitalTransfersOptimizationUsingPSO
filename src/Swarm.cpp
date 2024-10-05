@@ -101,8 +101,6 @@ template <typename T, typename Fun> void Swarm<T, Fun>::updateGBestPos() {
   }
 }
 
-// TODO: setters, getters, memory management
-// Getters
 template <typename T, typename Fun>
 size_t Swarm<T, Fun>::getNumParticles() const {
   return _numParticles;
@@ -187,4 +185,4 @@ template <typename T, typename Fun> void Swarm<T, Fun>::deallocateMemory() {
 }
 
 // Explicit instantiation
-template class Swarm<double, std::function<double(double *, size_t)>>;
+template class Swarm<double, std::function<double(double*, size_t)>>;

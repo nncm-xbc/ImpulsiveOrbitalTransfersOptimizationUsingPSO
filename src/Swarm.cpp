@@ -3,6 +3,7 @@
 #include <cmath>
 #include <limits>
 #include <omp.h>
+#include <iomanip>
 
 template <typename T, typename Fun>
 Swarm<T, Fun>::Swarm(const size_t &numParticles, const size_t &dimension,
@@ -36,16 +37,23 @@ void Swarm<T, Fun>::init(const size_t &numParticles, const size_t &dimension,
                    Particle<T, Fun>(objectiveFunction, dimension, _rng, _dis));
 }
 
-template <typename T, typename Fun> void Swarm<T, Fun>::info() const {
-  std::cout << "Swarm Information:" << std::endl;
-  std::cout << "Number of Particles: " << _numParticles << std::endl;
-  std::cout << "Dimension: " << _dimension << std::endl;
-  std::cout << "Hyper-parameters:" << std::endl;
-  std::cout << "Intertia weight: " << _inertiaWeight << std::endl;
-  std::cout << "Cognitive weight: " << _cognitiveWeight << std::endl;
-  std::cout << "Social weight: " << _socialWeight << std::endl;
-  std::cout << "Global Best Value: " << _gBestVal << std::endl;
+template <typename T, typename Fun>
+void Swarm<T, Fun>::info() const {
+    std::cout << "\n╔═══════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║              Swarm Information                ║" << std::endl;
+    std::cout << "╠═══════════════════════════════════════════════╣" << std::endl;
+    std::cout << "║ Number of Particles: " << std::setw(23) << _numParticles << "  ║" << std::endl;
+    std::cout << "║ Dimension:           " << std::setw(23) << _dimension << "  ║" << std::endl;
+    std::cout << "╠═══════════════════════════════════════════════╣" << std::endl;
+    std::cout << "║ Hyper-parameters:                             ║" << std::endl;
+    std::cout << "║   Inertia weight:    " << std::setw(23) << std::fixed << std::setprecision(4) << _inertiaWeight << "  ║" << std::endl;
+    std::cout << "║   Cognitive weight:  " << std::setw(23) << _cognitiveWeight << "  ║" << std::endl;
+    std::cout << "║   Social weight:     " << std::setw(23) << _socialWeight << "  ║" << std::endl;
+    std::cout << "╠═══════════════════════════════════════════════╣" << std::endl;
+    std::cout << "║ Global Best Value(init):   " << std::setw(23) << std::scientific << std::setprecision(6) << _gBestVal << "  ║" << std::endl;
+    std::cout << "╚═══════════════════════════════════════════════╝" << std::endl;
 }
+
 
 template <typename T, typename Fun>
 void Swarm<T, Fun>::updatePosition(Particle<T, Fun> &particle) {

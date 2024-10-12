@@ -14,30 +14,33 @@ struct LogEntry {
   double cognitiveWeight;
 };
 
-template<typename T>
 class ThreadSafeQueue{
 private:
-  std::queue<LogEntry> queue;
+  std::queue<std::vector<LogEntry>> queue;
   std::mutex mutex;
 
 public:
-  void push(const LogEntry& entry);
-  bool pop(LogEntry& entry);
+  void push(const std::vector<LogEntry>& entries);
+  bool pop(std::vector<LogEntry>& entries);
+  bool empty() const;
 };
 
 class Logger {
 private:
-  ThreadSafeQueue<LogEntry> logQueue;
+  ThreadSafeQueue logQueue;
   std::thread loggingThread;
   std::atomic<bool> running{true};
   std::ofstream logFile;
+  std::vector<LogEntry> buffer;
+  size_t batchSize = 100;
 
-  void logginFunction();
+  void loggingFunction();
 
 public: 
-  Logger(const std::string& filename): logFile(filename){}
+  Logger(const std::string& filename);
 
-  void log(double iter, double value, double inertiaWeight, double socialWeight, double cognitiveWeight);
+  void log(double iter, double value, double inertiaWeight, double socialWeight, double cognitiveWeight); 
+  void flushBuffer();
 
   ~Logger();
 };

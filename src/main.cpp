@@ -6,9 +6,9 @@
 int main() {
     // Define problem parameters
     size_t numParticles = 30;
-    size_t dimension = 2;
+    size_t dimension = 5;
     size_t maxIterations = 1000;
-    double tolerance = 1e-6;
+    double tolerance = 1e-12;
     double inertiaWeight = 0.7;
     double cognitiveWeight = 1.5;
     double socialWeight = 1.5;

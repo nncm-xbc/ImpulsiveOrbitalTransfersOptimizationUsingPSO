@@ -50,7 +50,7 @@ void Swarm<T, Fun>::info() const {
     std::cout << "║   Cognitive weight:  " << std::setw(23) << _cognitiveWeight << "  ║" << std::endl;
     std::cout << "║   Social weight:     " << std::setw(23) << _socialWeight << "  ║" << std::endl;
     std::cout << "╠═══════════════════════════════════════════════╣" << std::endl;
-    std::cout << "║ Global Best Value(init):   " << std::setw(23) << std::scientific << std::setprecision(6) << _gBestVal << "  ║" << std::endl;
+    std::cout << "║ Global Best Value(init):   " << std::setw(23) << std::scientific << std::setprecision(6) << _gBestVal << "║" << std::endl;
     std::cout << "╚═══════════════════════════════════════════════╝" << std::endl;
 }
 

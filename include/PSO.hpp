@@ -19,7 +19,6 @@ private:
   Swarm<T, Fun> swarm;
   size_t _maxIterations;
   T _tolerance;
-  std::vector<T> _convergenceHistory;
 
   double _velMax;
   double _posMin;

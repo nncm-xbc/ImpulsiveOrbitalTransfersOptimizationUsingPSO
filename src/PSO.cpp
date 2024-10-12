@@ -42,6 +42,7 @@ template <typename T, typename Fun> void PSO<T, Fun>::solve() {
     /*if (checkConvergence(iter, GbestValue, GbestPos) = true) {
         break;
     }*/
+   
     if(iter%10 == 0){
       logger.log(iter, swarm.getGlobalBestValue(), swarm.getInertiaWeight(), swarm.getSocialWeight(), swarm.getCognitiveWeight());
     }
@@ -62,7 +63,7 @@ void PSO<T, Fun>::printResults() const {
     std::cout << " ║" << std::endl;
     std::cout << "╠════════════════════════════════════════════╣" << std::endl;
     std::cout << "║ Best fitness value: " << std::setw(22) << swarm.getGlobalBestValue() << " ║" << std::endl;
-    std::cout << "║ Number of iterations: " << std::setw(20) << _convergenceHistory.size() << " ║" << std::endl;
+    std::cout << "║ Number of iterations: " << std::setw(20) << _maxIterations << " ║" << std::endl;
     std::cout << "╚════════════════════════════════════════════╝" << std::endl;
 
     // Additional information for orbital transfer problems

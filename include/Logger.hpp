@@ -1,10 +1,9 @@
 #ifndef LOG_HPP
 #define LOG_HPP 
 
-#include <thread>
 #include <fstream>
-#include <atomic>
-#include <queue>
+#include <mutex>
+#include <vector>
 
 struct LogEntry {
   double iter;
@@ -14,27 +13,12 @@ struct LogEntry {
   double cognitiveWeight;
 };
 
-class ThreadSafeQueue{
-private:
-  std::queue<std::vector<LogEntry>> queue;
-  std::mutex mutex;
-
-public:
-  void push(const std::vector<LogEntry>& entries);
-  bool pop(std::vector<LogEntry>& entries);
-  bool empty() const;
-};
-
 class Logger {
 private:
-  ThreadSafeQueue logQueue;
-  std::thread loggingThread;
-  std::atomic<bool> running{true};
   std::ofstream logFile;
+  std::mutex fileMutex;
   std::vector<LogEntry> buffer;
-  size_t batchSize = 100;
-
-  void loggingFunction();
+  size_t batchSize = 10;
 
 public: 
   Logger(const std::string& filename);

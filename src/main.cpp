@@ -1,17 +1,18 @@
-#include <iostream>
-#include <functional>
 #include "PSO.hpp"
 #include "Functions.hpp"
 
+#include <iostream>
+#include <functional>
+
 int main() {
     // Define problem parameters
-    size_t numParticles = 30;
-    size_t dimension = 5;
-    size_t maxIterations = 1000;
+    size_t numParticles = 100;
+    size_t dimension = 10;
+    size_t maxIterations = 100000;
     double tolerance = 1e-12;
-    double inertiaWeight = 0.7;
-    double cognitiveWeight = 1.5;
-    double socialWeight = 1.5;
+    double inertiaWeight = 0.5;
+    double cognitiveWeight = 2.0;
+    double socialWeight = 2.0;
 
     // Choose the objective function
     std::function<double(double*, size_t)> objectiveFunction = Function::Sphere<double>;

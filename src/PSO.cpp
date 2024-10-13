@@ -1,8 +1,6 @@
 #include "PSO.hpp"
 #include "Logger.hpp"
-#include <algorithm>
-#include <cmath>
-#include <limits>
+
 #include <omp.h>
 #include <iomanip>
 
@@ -25,7 +23,7 @@ template <typename T, typename Fun> void PSO<T, Fun>::initialize() {
 
 template <typename T, typename Fun> void PSO<T, Fun>::solve() {
   initialize();
-  Logger logger("convergence_log.csv");
+  Logger logger("../ressources/convergence_log.csv");
   for (size_t iter = 0; iter < _maxIterations; ++iter) {
     std::vector<T> GBPos_previous = swarm.getGlobalBestPosition();
 
@@ -43,10 +41,11 @@ template <typename T, typename Fun> void PSO<T, Fun>::solve() {
         break;
     }*/
    
-    if(iter%10 == 0){
+    if(iter%100 == 0){
       logger.log(iter, swarm.getGlobalBestValue(), swarm.getInertiaWeight(), swarm.getSocialWeight(), swarm.getCognitiveWeight());
     }
   }
+  logger.flushBuffer();
 }
 
 template <typename T, typename Fun>

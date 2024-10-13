@@ -1,7 +1,5 @@
 #include "Swarm.hpp"
-#include <algorithm>
-#include <cmath>
-#include <limits>
+
 #include <omp.h>
 #include <iomanip>
 

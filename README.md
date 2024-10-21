@@ -38,7 +38,7 @@ Our project is structured as follows:
   The `PSO` class takes care of the initialization of the swarm in other words the collection of particles on the search space associated to the objective function used.
 - The `Particle` class implements the object which holds the position, velocity and fitness value at a given position for a given objective function.
 - `Functions` is a namespace containing all the test functions we used. It also implements the methods to get the functions.
-
+test
 The project is organized in the following folders:
 
 - `include/`: Contains the header files for the PSO and Particles classes as well as the Functions namespace.

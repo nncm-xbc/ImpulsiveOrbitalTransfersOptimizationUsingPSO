@@ -4,54 +4,33 @@
 #include <iomanip>
 
 template <typename T, typename Fun>
-Swarm<T, Fun>::Swarm(const size_t &numParticles, const size_t &dimension,
-                     const Fun &objectiveFunction, const T inertiaWeight,
-                     const T cognitiveWeight, const T socialWeight)
-    : _numParticles(numParticles), _dimension(dimension),
-      _objectiveFunction(objectiveFunction), _inertiaWeight(inertiaWeight),
-      _cognitiveWeight(cognitiveWeight), _socialWeight(socialWeight) {
-  std::random_device rd;
-  _rng = std::mt19937(rd());
-  _dis = std::uniform_real_distribution<T>(0.0, 1.0);
-}
+Swarm<T, Fun>::Swarm(const size_t &numParticles,
+    const size_t &dimension,
+    const Fun &objectiveFunction,
+    const T inertiaWeight,
+    const T cognitiveWeight,
+    const T socialWeight):
+        _numParticles(numParticles),
+        _dimension(dimension),
+        _objectiveFunction(objectiveFunction),
+        _inertiaWeight(inertiaWeight),
+        _cognitiveWeight(cognitiveWeight),
+        _socialWeight(socialWeight) {
+            std::random_device rd;
+            _rng = std::mt19937(rd());
+            _dis = std::uniform_real_distribution<T>(0.0, 1.0);
+        }
 
 template <typename T, typename Fun> Swarm<T, Fun>::~Swarm() {
   deallocateMemory();
 }
 
 template <typename T, typename Fun>
-void Swarm<T, Fun>::init(const size_t &numParticles, const size_t &dimension,
-                         const Fun &objectiveFunction, const T &inertiaWeight,
-                         const T &cognitiveWeight, const T &socialWeight) {
-  _numParticles = numParticles;
-  _dimension = dimension;
-  _objectiveFunction = objectiveFunction;
-  _inertiaWeight = inertiaWeight;
-  _cognitiveWeight = cognitiveWeight;
-  _socialWeight = socialWeight;
-  _gBestPos.resize(dimension);
+void Swarm<T, Fun>::init() {
+  _gBestPos.resize(_dimension);
   _gBestVal = std::numeric_limits<T>::max();
-  particles.resize(numParticles,
-                   Particle<T, Fun>(objectiveFunction, dimension, _rng, _dis));
+  particles.resize(_numParticles, Particle<T, Fun>(_objectiveFunction, _dimension, _rng, _dis));
 }
-
-template <typename T, typename Fun>
-void Swarm<T, Fun>::info() const {
-    std::cout << "\n╔═══════════════════════════════════════════════╗" << std::endl;
-    std::cout << "║              Swarm Information                ║" << std::endl;
-    std::cout << "╠═══════════════════════════════════════════════╣" << std::endl;
-    std::cout << "║ Number of Particles: " << std::setw(23) << _numParticles << "  ║" << std::endl;
-    std::cout << "║ Dimension:           " << std::setw(23) << _dimension << "  ║" << std::endl;
-    std::cout << "╠═══════════════════════════════════════════════╣" << std::endl;
-    std::cout << "║ Hyper-parameters:                             ║" << std::endl;
-    std::cout << "║   Inertia weight:    " << std::setw(23) << std::fixed << std::setprecision(4) << _inertiaWeight << "  ║" << std::endl;
-    std::cout << "║   Cognitive weight:  " << std::setw(23) << _cognitiveWeight << "  ║" << std::endl;
-    std::cout << "║   Social weight:     " << std::setw(23) << _socialWeight << "  ║" << std::endl;
-    std::cout << "╠═══════════════════════════════════════════════╣" << std::endl;
-    std::cout << "║ Global Best Value(init):   " << std::setw(23) << std::scientific << std::setprecision(6) << _gBestVal << "║" << std::endl;
-    std::cout << "╚═══════════════════════════════════════════════╝" << std::endl;
-}
-
 
 template <typename T, typename Fun>
 void Swarm<T, Fun>::updatePosition(Particle<T, Fun> &particle) {
@@ -105,6 +84,23 @@ template <typename T, typename Fun> void Swarm<T, Fun>::updateGBestPos() {
       }
     }
   }
+}
+
+template <typename T, typename Fun>
+void Swarm<T, Fun>::info() const {
+    std::cout << "\n╔═════════════════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║              Swarm Information                                  ║" << std::endl;
+    std::cout << "╠═════════════════════════════════════════════════════════════════╣" << std::endl;
+    std::cout << "║ Number of Particles: " << std::setw(40) << _numParticles << "   ║" << std::endl;
+    std::cout << "║ Dimension:           " << std::setw(40) << _dimension << "   ║" << std::endl;
+    std::cout << "╠═════════════════════════════════════════════════════════════════╣" << std::endl;
+    std::cout << "║ Hyper-parameters:                                               ║" << std::endl;
+    std::cout << "║   Inertia weight:    " << std::setw(40) << std::fixed << std::setprecision(4) << _inertiaWeight << "   ║" << std::endl;
+    std::cout << "║   Cognitive weight:  " << std::setw(40) << _cognitiveWeight << "   ║" << std::endl;
+    std::cout << "║   Social weight:     " << std::setw(40) << _socialWeight << "   ║" << std::endl;
+    std::cout << "╠═════════════════════════════════════════════════════════════════╣" << std::endl;
+    std::cout << "║ Global Best Value(init):" << std::setw(40) << std::scientific << std::setprecision(6) << _gBestVal << "║" << std::endl;
+    std::cout << "╚═════════════════════════════════════════════════════════════════╝" << std::endl;
 }
 
 template <typename T, typename Fun>

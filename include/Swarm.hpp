@@ -4,7 +4,8 @@
 #include "Particle.hpp"
 #include <vector>
 
-template <typename T, typename Fun> class Swarm {
+template <typename T, typename Fun>
+class Swarm {
 public:
   // Constructor
   Swarm(const size_t &numParticles, const size_t &dimension,
@@ -17,9 +18,7 @@ public:
   ~Swarm();
 
   // Public interfaces
-  void init(const size_t &numParticles, const size_t &dimension,
-            const Fun &objectiveFunction, const T &inertiaWeight,
-            const T &cognitiveWeight, const T &socialWeight);
+  void init();
 
   void info() const;
   // Update logic

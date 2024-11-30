@@ -17,14 +17,14 @@ TEST_CASE("Swarm tests", "[swarm]") {
     SECTION("Constructor and initialization") {
         REQUIRE(swarm->getNumParticles() == numParticles);
         REQUIRE(swarm->getDimension() == dimension);
-        
+
         std::vector<double> testInput = {1.0, 1.0};
-        REQUIRE(swarm->getObjectiveFunction()(testInput.data(), testInput.size()) == 
+        REQUIRE(swarm->getObjectiveFunction()(testInput.data(), testInput.size()) ==
                 Catch::Approx(testFunction(testInput.data(), testInput.size())));
     }
 
     SECTION("Particle initialization") {
-        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        swarm->init();
         for (size_t i = 0; i < numParticles; ++i) {
             auto position = swarm->getPosition(swarm->particles[i]);
             REQUIRE(position.size() == dimension);
@@ -42,7 +42,7 @@ TEST_CASE("Swarm tests", "[swarm]") {
     }
 */
     SECTION("Position update") {
-        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        swarm->init();
         auto& particle = swarm->particles[0];
         auto oldPosition = swarm->getPosition(particle);
         swarm->updatePosition(particle);
@@ -51,7 +51,7 @@ TEST_CASE("Swarm tests", "[swarm]") {
     }
 
     SECTION("Velocity update") {
-        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        swarm->init();
         auto& particle = swarm->particles[0];
         auto oldVelocity = swarm->getVelocity(particle);
         swarm->updateVelocity(particle);
@@ -60,7 +60,7 @@ TEST_CASE("Swarm tests", "[swarm]") {
     }
 
     SECTION("Personal best update") {
-        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        swarm->init();
         auto& particle = swarm->particles[0];
 
         // init best personal val and pos
@@ -69,7 +69,7 @@ TEST_CASE("Swarm tests", "[swarm]") {
         auto oldPBestPos = particle.getBestPosition();
         auto oldPBestVal = particle.getBestValue();
 
-        //New best personal pos and updates 
+        //New best personal pos and updates
         particle.setPosition(std::vector<double>{1.0, 1.0}, testFunction);
         swarm->updatePBestPos(particle);
         swarm->updatePBestVal(particle);
@@ -86,7 +86,7 @@ TEST_CASE("Swarm tests", "[swarm]") {
     }
 
     SECTION("Global best update") {
-        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        swarm->init();
         auto oldGBest = swarm->getGlobalBestPosition();
         swarm->updateGBestPos();
         auto newGBest = swarm->getGlobalBestPosition();
@@ -94,7 +94,7 @@ TEST_CASE("Swarm tests", "[swarm]") {
     }
 
     SECTION("Swarm convergence") {
-        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        swarm->init();
         const int iterations = 100;
         double initialBest = swarm->getGlobalBestValue();
         for (int i = 0; i < iterations; ++i) {
@@ -111,7 +111,7 @@ TEST_CASE("Swarm tests", "[swarm]") {
     }
 
     SECTION("Memory management") {
-        swarm->init(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+        swarm->init();
         swarm->deallocateMemory();
         REQUIRE(swarm->particles.size() == 0);
     }

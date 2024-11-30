@@ -8,10 +8,9 @@ Logger::Logger(const std::string& filename): logFile(filename){
 }
 
 void Logger::log(double iter, double value, double inertiaWeight, double socialWeight, double cognitiveWeight){
-  
-  LogEntry entry = {iter, value, inertiaWeight, socialWeight, cognitiveWeight}; 
+  LogEntry entry = {iter, value, inertiaWeight, socialWeight, cognitiveWeight};
   buffer.push_back(entry);
-  
+
   if(buffer.size() >= batchSize){
     flushBuffer();
   }

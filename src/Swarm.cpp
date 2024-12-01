@@ -2,6 +2,7 @@
 
 #include <omp.h>
 #include <iomanip>
+#include <vector>
 
 template <typename T, typename Fun>
 Swarm<T, Fun>::Swarm(const size_t &numParticles,
@@ -9,13 +10,17 @@ Swarm<T, Fun>::Swarm(const size_t &numParticles,
     const Fun &objectiveFunction,
     const T inertiaWeight,
     const T cognitiveWeight,
-    const T socialWeight):
+    const T socialWeight,
+    const std::vector<T> lowerBounds,
+    const std::vector<T> upperBounds):
         _numParticles(numParticles),
         _dimension(dimension),
         _objectiveFunction(objectiveFunction),
         _inertiaWeight(inertiaWeight),
         _cognitiveWeight(cognitiveWeight),
-        _socialWeight(socialWeight) {
+        _socialWeight(socialWeight),
+        _lowerBounds(lowerBounds),
+        _upperBounds(upperBounds) {
             std::random_device rd;
             _rng = std::mt19937(rd());
             _dis = std::uniform_real_distribution<T>(0.0, 1.0);
@@ -28,8 +33,8 @@ template <typename T, typename Fun> Swarm<T, Fun>::~Swarm() {
 template <typename T, typename Fun>
 void Swarm<T, Fun>::init() {
   _gBestPos.resize(_dimension);
-  _gBestVal = std::numeric_limits<T>::max();
-  particles.resize(_numParticles, Particle<T, Fun>(_objectiveFunction, _dimension, _rng, _dis));
+  particles.resize(_numParticles, Particle<T, Fun>(_objectiveFunction, _dimension, _lowerBounds, _upperBounds, _rng, _dis));
+  _gBestVal = particles[0].getBestValue();
 }
 
 template <typename T, typename Fun>
@@ -39,8 +44,22 @@ void Swarm<T, Fun>::updatePosition(Particle<T, Fun> &particle) {
 
   for (size_t i = 0; i < _dimension; ++i) {
     newPosition[i] += velocity[i];
-  }
 
+    if (newPosition[i] < _lowerBounds[i]) {
+        newPosition[i] = _lowerBounds[i];
+
+        std::vector<T> newVelocity = particle.getVelocity();
+        newVelocity[i] = 0.0;
+        particle.setVelocity(newVelocity);
+
+    } else if (newPosition[i] > _upperBounds[i]) {
+        newPosition[i] = _upperBounds[i];
+
+        std::vector<T> newVelocity = particle.getVelocity();
+        newVelocity[i] = 0.0;
+        particle.setVelocity(newVelocity);
+    }
+  }
   particle.setPosition(newPosition, _objectiveFunction);
 }
 
@@ -78,10 +97,8 @@ template <typename T, typename Fun> void Swarm<T, Fun>::updateGBestPos() {
   for (size_t i = 0; i < _numParticles; ++i) {
     T newBestValue = particles[i].getBestValue();
     if (newBestValue < _gBestVal) {
-      if (newBestValue < _gBestVal) {
         _gBestVal = newBestValue;
         _gBestPos = particles[i].getBestPosition();
-      }
     }
   }
 }

@@ -8,9 +8,14 @@ template <typename T, typename Fun>
 class Swarm {
 public:
   // Constructor
-  Swarm(const size_t &numParticles, const size_t &dimension,
-        const Fun &objectiveFunction, const T inertiaWeight,
-        const T cognitiveWeight, const T socialWeight);
+  Swarm(const size_t &numParticles,
+        const size_t &dimension,
+        const Fun &objectiveFunction,
+        const T inertiaWeight,
+        const T cognitiveWeight,
+        const T socialWeight,
+        const std::vector<T> lowerBounds,
+        const std::vector<T> upperBounds);
 
   Swarm() = default;
 
@@ -61,6 +66,8 @@ private:
   T _inertiaWeight;
   T _cognitiveWeight;
   T _socialWeight;
+  std::vector<T> _lowerBounds;
+  std::vector<T> _upperBounds;
   std::vector<T> _gBestPos;
   T _gBestVal;
   std::mt19937 _rng;

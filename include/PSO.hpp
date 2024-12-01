@@ -6,13 +6,18 @@
 template <typename T, typename Fun>
 class PSO {
 public:
-  PSO(size_t numParticles, size_t dimension, size_t maxIterations, T tolerance,
-      T inertiaWeight, T cognitiveWeight, T socialWeight,
-      Fun &objectiveFunction);
+  PSO(size_t numParticles,
+      size_t dimension,
+      size_t maxIterations,
+      T tolerance,
+      T inertiaWeight,
+      T cognitiveWeight,
+      T socialWeight,
+      const Fun &objectiveFunction,
+      const std::vector<T> lowerBounds,
+      const std::vector<T> upperBounds);
 
   void solve();
-  // bool checkConvergence(int iter, T globalBestValue, std::vector<T>
-  // globalBestPosition);
   void printResults() const;
 
 private:

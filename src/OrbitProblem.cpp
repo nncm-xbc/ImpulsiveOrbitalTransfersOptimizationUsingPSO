@@ -2,52 +2,81 @@
 
 #include <vector>
 #include <cmath>
+#include <functional>
 
 template <typename T, typename Fun>
-OrbitTransferObjective<T, Fun>::OrbitTransferObjective(double r1, double r2, double rmax): _R1(r1), _R2(r2), _Rmax(rmax) {}
+OrbitTransferObjective<T, Fun>::OrbitTransferObjective(double _R1, double _R2, double _Rmax): _R1(_R1), _R2(_R2), _Rmax(_Rmax) {}
 
 template <typename T, typename Fun>
-double OrbitTransferObjective<T, Fun>::calculateImpulse(double r1, double r2, double theta) {
-    double v1 = std::sqrt(_mu/r1);
-    double v2 = std::sqrt(_mu/r2) * sqrt((2*theta)/(r1 + r2));
-    return std::abs(v2 - v1);
+double OrbitTransferObjective<T, Fun>::operator()(double* x, size_t dim) {
+    std::vector<double> params(x, x + dim);
+    return calculateDeltaV(params, dim);
+}
+
+template<typename T, typename Fun>
+double OrbitTransferObjective<T, Fun>::calculateVelocity(double r) {
+    return std::sqrt(_mu/r);
+}
+
+template <typename T, typename Fun>
+double OrbitTransferObjective<T, Fun>::calculateTransferVelocity(double _R1, double _R2, double theta) {
+    return std::sqrt(_mu/_R2) * sqrt((2*theta)/(_R1 + _R2));
 }
 
 template <typename T, typename Fun>
 double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>& x, size_t dim) {
     double deltaV = 0.0;
     if (!checkConstraints(x)) {
-        return std::numeric_limits<double>::max(); // Penalty
+        // Penalty
+        return 1e6;
     }
 
-    // Calculate velocity changes at each impulse point
-    double deltaV1 = calculateImpulse(_R1, x[0], x[2]);
-    double deltaV2 = calculateImpulse(x[0], x[1], x[3]);
-    double deltaV3 = calculateImpulse(x[1], _R2, x[4]);
+    if (dim==2) {
+        // First impulse
+        double v1_init = calculateVelocity(_R1);
+        double v1_transfer = calculateTransferVelocity(_R1, x[0], x[1]);
+        deltaV += std::abs(v1_transfer - v1_init);
 
-    return deltaV1 + deltaV2 + deltaV3;
+        // Second impulse
+        double v2_transfer = calculateTransferVelocity(_R2, x[0], x[1]);
+        double v2_final = calculateVelocity(_R2);
+        deltaV += std::abs(v2_final - v2_transfer);
+    }
+    else if (dim=3) {
+        // First impulse at initial orbit
+        double v1_init = calculateVelocity(_R1);
+        double v1_transfer = calculateTransferVelocity(_R1, x[0], x[1]);
+        deltaV += std::abs(v1_transfer - v1_init);
+
+        // Second impulse at intermediate orbit
+        double v2_transfer = calculateTransferVelocity(x[0], x[1], x[2]);
+        deltaV += std::abs(v2_transfer - v1_transfer);
+
+        // Third impulse to final orbit
+        double v3_transfer = calculateTransferVelocity(_R2, x[2], 0);
+        double v3_final = calculateVelocity(_R2);
+        deltaV += std::abs(v3_final - v3_transfer);
+    }
+
+    return deltaV;
 }
 
 template <typename T, typename Fun>
 bool OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double>& x) {
-    // Constraint 1: Maximum radius constraint
-    if (x[0] > _Rmax || x[1] > _Rmax) {
-        return false;
-    }
 
-    // Constraint 2: Impulses must occur at apse points
-    /*
-    if (x[2] < 0 || x[2] > M_PI || x[3] < 0 || x[3] > M_PI || x[4] < 0 || x[4] > M_PI) {
-        return false;
-    }
-    */
+    if (x[0] < _R1 || x[0] > _Rmax) return false;
+    if (x[1] < 0.0 || x[1] > 2*M_PI) return false;
 
-    // Constraint 3: Ensure R2/R1 ratio is within proper bounds
-    double ratio = _R2/_R1;
-    if (ratio < 0.08376 || ratio > 11.939) {
-        // This range determines if Hohmann transfer is optimal
-        return false;
-    }
+    // Feasibility check for transfer orbit
+    double transferPeriapsis = x[0] * (1.0 - std::cos(x[1]));
+    double transferApoapsis = x[0] * (1.0 + std::cos(x[1]));
+
+    // Check if transfer orbit intersects both initial and final orbits
+    if (transferPeriapsis > std::min(_R1, _R2) ||
+        transferApoapsis < std::max(_R1, _R2)) return false;
 
     return true;
 }
+
+// Explicit instantiation
+template class OrbitTransferObjective<double, std::function<double(double*, size_t)>>;

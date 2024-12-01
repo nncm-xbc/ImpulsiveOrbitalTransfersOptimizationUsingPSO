@@ -11,11 +11,13 @@ private:
     double _Rmax; // Maximum allowed radius
     double _mu = 398600.4418;
 
-    double calculateImpulse(double r1, double r2, double theta);
+    double calculateVelocity(double r);
+    double calculateTransferVelocity(double r1, double r2, double theta);
 
 public:
     OrbitTransferObjective(double r1, double r2, double rmax);
 
+    double operator()(double* x, size_t dim);
     double calculateDeltaV(const std::vector<double>& x, size_t dim);
     bool checkConstraints(const std::vector<double>& x);
 };

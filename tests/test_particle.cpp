@@ -10,16 +10,23 @@ TEST_CASE("Particle tests", "[particle]") {
     const size_t dimension = 2;
     std::mt19937 rng;
     std::uniform_real_distribution<> dis;
+    std::vector<double> lowerBounds(dimension);
+    std::vector<double> upperBounds(dimension);
+
+    lowerBounds[0] = 6678.0;
+    upperBounds[0] = 42164.0;
+    lowerBounds[1] = 42164.0;
+    upperBounds[1] = 2*M_PI;
 
     SECTION("Constructor initializes correctly") {
-        Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
+        Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, lowerBounds, upperBounds, rng, dis);
         REQUIRE(particle.getPosition().size() == dimension);
         REQUIRE(particle.getVelocity().size() == dimension);
         REQUIRE(particle.getBestPosition().size() == dimension);
     }
 
     SECTION("Setter methods update correctly") {
-        Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
+        Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, lowerBounds, upperBounds, rng, dis);
         SECTION("Set position") {
             std::vector<double> position = {1.0, 2.0};
             particle.setPosition(position, fun);
@@ -52,7 +59,7 @@ TEST_CASE("Particle tests", "[particle]") {
     }
 
     SECTION("Handle incorrect dimension input") {
-        Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
+        Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, lowerBounds, upperBounds, rng, dis);
         std::vector<double> incorrectDimension = {1.0, 2.0, 3.0};
         REQUIRE_THROWS_AS(particle.setPosition(incorrectDimension, fun), std::invalid_argument);
         REQUIRE_THROWS_AS(particle.setVelocity(incorrectDimension), std::invalid_argument);
@@ -60,11 +67,10 @@ TEST_CASE("Particle tests", "[particle]") {
     }
 
     SECTION("Objective function used correctly") {
-        Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, rng, dis);
+        Particle<double, std::function<double(double *, size_t)>> particle(fun, dimension, lowerBounds, upperBounds, rng, dis);
         std::vector<double> position = {1.0, 2.0};
         particle.setPosition(position, fun);
         double expectedValue = Function::Sphere<double>(position.data(), dimension);
         REQUIRE(particle.getValue() == Catch::Approx(expectedValue));
     }
 }
-

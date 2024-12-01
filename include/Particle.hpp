@@ -9,8 +9,12 @@
 
 template <typename T, typename Fun> class Particle {
 public:
-  Particle(const Fun objectiveFunction, const size_t &dimension,
-           std::mt19937 &rng, std::uniform_real_distribution<> &dis);
+  Particle(const Fun objectiveFunction,
+            const size_t &dimension,
+            const std::vector<T> &lowerBounds,
+            const std::vector<T> &upperBounds,
+            std::mt19937 &rng,
+            std::uniform_real_distribution<> &dis);
   Particle() = default;
 
   // Setters
@@ -38,15 +42,20 @@ private:
 };
 // Constructor
 template <typename T, typename Fun>
-Particle<T, Fun>::Particle(const Fun objectiveFunction, const size_t &dimension,
-                           std::mt19937 &rng,
-                           std::uniform_real_distribution<> &dis)
-    : _dimension(dimension), _position(dimension), _velocity(dimension),
-      _bestPosition(dimension) {
+Particle<T, Fun>::Particle(const Fun objectiveFunction,
+                            const size_t &dimension,
+                            const std::vector<T> &lowerBounds,
+                            const std::vector<T> &upperBounds,
+                            std::mt19937 &rng,
+                            std::uniform_real_distribution<> &dis):
+                        _dimension(dimension),
+                        _position(dimension),
+                        _velocity(dimension),
+                        _bestPosition(dimension) {
 
   for (size_t i = 0; i < _dimension; ++i) {
-    _position[i] = dis(rng);
-    _velocity[i] = dis(rng);
+    _position[i] = lowerBounds[i] + dis(rng) * (upperBounds[i] - lowerBounds[i]);
+    _velocity[i] = 0.1 * (upperBounds[i] - lowerBounds[i]) * (dis(rng) - 0.5);
   }
 
   _bestPosition = _position;

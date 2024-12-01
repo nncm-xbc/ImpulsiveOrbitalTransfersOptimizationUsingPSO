@@ -11,8 +11,16 @@ TEST_CASE("Swarm tests", "[swarm]") {
     const double inertiaWeight = 0.7;
     const double cognitiveWeight = 1.5;
     const double socialWeight = 1.5;
+    std::vector<double> lowerBounds(dimension);
+    std::vector<double> upperBounds(dimension);
 
-    SwarmType* swarm = new SwarmType(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight);
+    lowerBounds[0] = 6678.0;
+    upperBounds[0] = 42164.0;
+    lowerBounds[1] = 42164.0;
+    upperBounds[1] = 2*M_PI;
+
+
+    SwarmType* swarm = new SwarmType(numParticles, dimension, testFunction, inertiaWeight, cognitiveWeight, socialWeight, lowerBounds, upperBounds);
 
     SECTION("Constructor and initialization") {
         REQUIRE(swarm->getNumParticles() == numParticles);

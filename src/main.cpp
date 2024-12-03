@@ -25,8 +25,10 @@ int main() {
     std::vector<double> lowerBounds(dimension);
     std::vector<double> upperBounds(dimension);
 
+    // Radius bounds
     lowerBounds[0] = R1;
     upperBounds[0] = R2;
+    // Angle bounds
     lowerBounds[1] = 0.0;
     upperBounds[1] = 2*M_PI;
 

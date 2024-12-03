@@ -11,10 +11,9 @@ template <typename T, typename Fun> class Particle {
 public:
   Particle(const Fun objectiveFunction,
             const size_t &dimension,
-            const std::vector<T> &lowerBounds,
-            const std::vector<T> &upperBounds,
             std::mt19937 &rng,
-            std::uniform_real_distribution<> &dis);
+            std::vector<std::uniform_real_distribution<>> &dis,
+            double adjustedRange);
   Particle() = default;
 
   // Setters
@@ -44,23 +43,21 @@ private:
 template <typename T, typename Fun>
 Particle<T, Fun>::Particle(const Fun objectiveFunction,
                             const size_t &dimension,
-                            const std::vector<T> &lowerBounds,
-                            const std::vector<T> &upperBounds,
                             std::mt19937 &rng,
-                            std::uniform_real_distribution<> &dis):
+                            std::vector<std::uniform_real_distribution<>> &dis,
+                            double adjustedRange):
                         _dimension(dimension),
                         _position(dimension),
                         _velocity(dimension),
                         _bestPosition(dimension) {
+    double velocityScale = 0.1; // 10% of position range
+    for (size_t i = 0; i < _dimension; ++i) {
+        _position[i] = dis[i](rng);
+        _velocity[i] = velocityScale * adjustedRange * (dis[i](rng) - 0.5);  }
 
-  for (size_t i = 0; i < _dimension; ++i) {
-    _position[i] = lowerBounds[i] + dis(rng) * (upperBounds[i] - lowerBounds[i]);
-    _velocity[i] = 0.1 * (upperBounds[i] - lowerBounds[i]) * (dis(rng) - 0.5);
-  }
-
-  _bestPosition = _position;
-  _value = objectiveFunction(_position.data(), _dimension);
-  _bestValue = _value;
+    _bestPosition = _position;
+    _value = objectiveFunction(_position.data(), _dimension);
+    _bestValue = _value;
 }
 
 // Setters

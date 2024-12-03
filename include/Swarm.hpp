@@ -71,7 +71,7 @@ private:
   std::vector<T> _gBestPos;
   T _gBestVal;
   std::mt19937 _rng;
-  std::uniform_real_distribution<double> _dis;
+  std::vector<std::uniform_real_distribution<double>> _dis;
 };
 
 #endif

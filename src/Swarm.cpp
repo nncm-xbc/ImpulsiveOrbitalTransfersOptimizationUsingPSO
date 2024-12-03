@@ -23,7 +23,15 @@ Swarm<T, Fun>::Swarm(const size_t &numParticles,
         _upperBounds(upperBounds) {
             std::random_device rd;
             _rng = std::mt19937(rd());
-            _dis = std::uniform_real_distribution<T>(0.0, 1.0);
+            _dis = std::vector<std::uniform_real_distribution<T>> (_dimension);
+            double margin = 0.05;
+            for (size_t i = 0; i < dimension; ++i) {
+                double range = upperBounds[i] - lowerBounds[i];
+                double adjustedLower = lowerBounds[i] + (margin * range);
+                double adjustedUpper = upperBounds[i] - (margin * range);
+                double adjustedRange = adjustedUpper - adjustedLower;
+                _dis[i] = (std::uniform_real_distribution<T>(adjustedLower, adjustedUpper));
+            }
         }
 
 template <typename T, typename Fun> Swarm<T, Fun>::~Swarm() {
@@ -33,7 +41,7 @@ template <typename T, typename Fun> Swarm<T, Fun>::~Swarm() {
 template <typename T, typename Fun>
 void Swarm<T, Fun>::init() {
   _gBestPos.resize(_dimension);
-  particles.resize(_numParticles, Particle<T, Fun>(_objectiveFunction, _dimension, _lowerBounds, _upperBounds, _rng, _dis));
+  particles.resize(_numParticles, Particle<T, Fun>(_objectiveFunction, _dimension, _rng, _dis, adjustedRange));
   _gBestVal = particles[0].getBestValue();
 }
 
@@ -70,8 +78,8 @@ void Swarm<T, Fun>::updateVelocity(Particle<T, Fun> &particle) {
   const std::vector<T> &pBest = particle.getBestPosition();
 
   for (size_t i = 0; i < _dimension; ++i) {
-    T r1 = _dis(_rng);
-    T r2 = _dis(_rng);
+    T r1 = _dis[i](_rng);
+    T r2 = _dis[i](_rng);
     newVelocity[i] = _inertiaWeight * newVelocity[i] +
                      _cognitiveWeight * r1 * (pBest[i] - position[i]) +
                      _socialWeight * r2 * (_gBestPos[i] - position[i]);

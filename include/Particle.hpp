@@ -12,8 +12,8 @@ public:
   Particle(const Fun objectiveFunction,
             const size_t &dimension,
             std::mt19937 &rng,
-            std::vector<std::uniform_real_distribution<>> &dis,
-            double adjustedRange);
+            std::vector<std::uniform_real_distribution<T>> &dis,
+            std::vector<T> adjustedRange);
   Particle() = default;
 
   // Setters
@@ -44,8 +44,8 @@ template <typename T, typename Fun>
 Particle<T, Fun>::Particle(const Fun objectiveFunction,
                             const size_t &dimension,
                             std::mt19937 &rng,
-                            std::vector<std::uniform_real_distribution<>> &dis,
-                            double adjustedRange):
+                            std::vector<std::uniform_real_distribution<T>> &dis,
+                            std::vector<T> adjustedRange):
                         _dimension(dimension),
                         _position(dimension),
                         _velocity(dimension),
@@ -53,7 +53,7 @@ Particle<T, Fun>::Particle(const Fun objectiveFunction,
     double velocityScale = 0.1; // 10% of position range
     for (size_t i = 0; i < _dimension; ++i) {
         _position[i] = dis[i](rng);
-        _velocity[i] = velocityScale * adjustedRange * (dis[i](rng) - 0.5);  }
+        _velocity[i] = velocityScale * adjustedRange[i] * (dis[i](rng) - 0.5);  }
 
     _bestPosition = _position;
     _value = objectiveFunction(_position.data(), _dimension);

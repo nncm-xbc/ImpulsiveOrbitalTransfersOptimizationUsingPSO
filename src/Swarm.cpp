@@ -55,17 +55,17 @@ void Swarm<T, Fun>::init()
         _rng = std::mt19937(rd());
         particles.emplace_back(Particle<T, Fun>(_objectiveFunction, _dimension, _rng, _dis, _adjustedRange));
     }
-/*
+
     for (size_t i = 0; i < _numParticles; i++)
     {
-        std::cout << "Particle" << i << " x: " << particles[i].getPosition()[0] << ";  y: "<< particles[i].getPosition()[1] << std::endl;
+        std::cout << "Particle" << i << " x: " << particles[i].getPosition()[0] << ";  y: "<< particles[i].getPosition()[1] << ";   val : "<< particles[i].getValue() << std::endl;
     }
-*/
 }
 
 template <typename T, typename Fun>
 void Swarm<T, Fun>::updatePosition(Particle<T, Fun> &particle)
 {
+    //std::cout << "Update POSITION called" << std::endl;
     std::vector<T> newPosition = particle.getPosition();
     const std::vector<T> &velocity = particle.getVelocity();
 
@@ -95,6 +95,8 @@ void Swarm<T, Fun>::updatePosition(Particle<T, Fun> &particle)
 template <typename T, typename Fun>
 void Swarm<T, Fun>::updateVelocity(Particle<T, Fun> &particle)
 {
+    //std::cout << "Update VELOCITY called" << std::endl;
+
     std::vector<T> newVelocity(particle.getVelocity());
     const std::vector<T> &position = particle.getPosition();
     const std::vector<T> &pBest = particle.getBestPosition();
@@ -118,6 +120,7 @@ void Swarm<T, Fun>::updatePBestPos(Particle<T, Fun> &particle)
         particle.setBestPosition(particle.getPosition());
         particle.setBestValue(particle.getValue());
     }
+    //std::cout << "Update PERSONAL BEST called" << std::endl;
 }
 
 template <typename T, typename Fun>
@@ -134,6 +137,9 @@ template <typename T, typename Fun> void Swarm<T, Fun>::updateGBestPos()
         T newBestValue = particles[i].getBestValue();
         if (newBestValue < _gBestVal)
         {
+            std::cout << "Update GLOBAL BEST !!!!" << std::endl;
+            std::cout << "Global best value update: " << newBestValue << "  vs  " << _gBestVal << std::endl;
+
             _gBestVal = newBestValue;
             _gBestPos = particles[i].getBestPosition();
         }

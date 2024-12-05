@@ -8,30 +8,36 @@ template <typename T, typename Fun>
 OrbitTransferObjective<T, Fun>::OrbitTransferObjective(double _R1, double _R2, double _Rmax): _R1(_R1), _R2(_R2), _Rmax(_Rmax) {}
 
 template <typename T, typename Fun>
-double OrbitTransferObjective<T, Fun>::operator()(double* x, size_t dim) {
+double OrbitTransferObjective<T, Fun>::operator()(double* x, size_t dim)
+{
     std::vector<double> params(x, x + dim);
     return calculateDeltaV(params, dim);
 }
 
 template<typename T, typename Fun>
-double OrbitTransferObjective<T, Fun>::calculateVelocity(double r) {
+double OrbitTransferObjective<T, Fun>::calculateVelocity(double r)
+{
     return std::sqrt(_mu/r);
 }
 
 template <typename T, typename Fun>
-double OrbitTransferObjective<T, Fun>::calculateTransferVelocity(double _R1, double _R2, double theta) {
+double OrbitTransferObjective<T, Fun>::calculateTransferVelocity(double _R1, double _R2, double theta)
+{
     return std::sqrt(_mu/_R2) * sqrt((2*theta)/(_R1 + _R2));
 }
 
 template <typename T, typename Fun>
-double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>& x, size_t dim) {
+double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>& x, size_t dim)
+{
     double deltaV = 0.0;
-    if (!checkConstraints(x)) {
+    if (!checkConstraints(x))
+    {
         // Penalty
         return 1e6;
     }
 
-    if (dim==2) {
+    if (dim==2)
+    {
         // First impulse
         double v1_init = calculateVelocity(_R1);
         double v1_transfer = calculateTransferVelocity(_R1, x[0], x[1]);
@@ -42,7 +48,8 @@ double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>
         double v2_final = calculateVelocity(_R2);
         deltaV += std::abs(v2_final - v2_transfer);
     }
-    else if (dim=3) {
+    else if (dim=3)
+    {
         // First impulse at initial orbit
         double v1_init = calculateVelocity(_R1);
         double v1_transfer = calculateTransferVelocity(_R1, x[0], x[1]);
@@ -62,7 +69,8 @@ double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>
 }
 
 template <typename T, typename Fun>
-bool OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double>& x) {
+bool OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double>& x)
+{
 
     if (x[0] < _R1 || x[0] > _Rmax) return false;
     if (x[1] < 0.0 || x[1] > 2*M_PI) return false;

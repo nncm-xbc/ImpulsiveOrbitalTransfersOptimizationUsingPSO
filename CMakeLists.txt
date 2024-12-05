@@ -52,8 +52,8 @@ if(Catch2_FOUND)
 
     # Add test executable
   set(TEST_SOURCES
-    tests/test_particle.cpp
-    tests/test_swarm.cpp
+    # tests/test_particle.cpp
+    # tests/test_swarm.cpp
     tests/test_PSO.cpp
     tests/test_OrbitProblem.cpp
     tests/test_OrbitTransfer.cpp

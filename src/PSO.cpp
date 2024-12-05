@@ -25,22 +25,23 @@ PSO<T, Fun>::PSO(size_t numParticles,
                     lowerBounds,
                     upperBounds),
                 _maxIterations(maxIterations),
-                _tolerance(tolerance),
-                _velMax(0.1),
-                _posMin(0.0),
-                _posMax(100.0) {}
+                _tolerance(tolerance){}
 
 template <typename T, typename Fun>
-void PSO<T, Fun>::solve() {
+void PSO<T, Fun>::solve()
+{
     swarm.init();
     swarm.info();
 
     Logger conv_logger("../ressources/convergence_log.csv");
 
-    for (size_t iter = 0; iter < _maxIterations; ++iter) {
+    for (size_t iter = 0; iter < _maxIterations; ++iter)
+    {
+        //std::cout << "Iteration: " << iter << std::endl;
         std::vector<T> GBPos_previous = swarm.getGlobalBestPosition();
 
-        for (size_t i = 0; i < swarm.getNumParticles(); ++i) {
+        for (size_t i = 0; i < swarm.getNumParticles(); ++i)
+        {
             auto &particle = swarm.particles[i];
 
             swarm.updateVelocity(particle);
@@ -50,11 +51,15 @@ void PSO<T, Fun>::solve() {
         swarm.updateGBestPos();
         updateWC(GBPos_previous, iter);
 
-        if (swarm.getGlobalBestValue() < _tolerance) {
+        if (swarm.getGlobalBestValue() < _tolerance)
+        {
+            std::cout << "Convergence reached !!" << std::endl;
             break;
         }
 
-        if(iter%100 == 0){
+        if(iter%100 == 0)
+        {
+            std::cout << "Logging" << std::endl;
             conv_logger.log(iter, swarm.getGlobalBestValue(), swarm.getInertiaWeight(), swarm.getSocialWeight(), swarm.getCognitiveWeight());
         }
     }
@@ -63,25 +68,27 @@ void PSO<T, Fun>::solve() {
 }
 
 template <typename T, typename Fun>
-void PSO<T, Fun>::updateWC(std::vector<T> GBPos_previous, size_t iter) {
+void PSO<T, Fun>::updateWC(std::vector<T> GBPos_previous, size_t iter)
+{
     // Linear decrease of inertia weight with iteration count
     T currentIteration = static_cast<T>(iter);
     T maxWeight = 0.9;
     T minWeight = 0.4;
-
     T inertiaWeight = maxWeight - ((maxWeight - minWeight) * currentIteration / _maxIterations);
 
     swarm.setInertiaWeight(inertiaWeight);
 }
 
 template <typename T, typename Fun>
-void PSO<T, Fun>::printResults() const {
+void PSO<T, Fun>::printResults() const
+{
     std::cout.setf(std::ios::scientific);
     std::cout << "\n╔═════════════════════════════════════════════════════════════════╗" << std::endl;
     std::cout << "║           Optimization Results                                  ║" << std::endl;
     std::cout << "╠═════════════════════════════════════════════════════════════════╣" << std::endl;
     std::cout << "║ Best solution found:                                            ║" << std::endl;
-    for (size_t i = 0; i < swarm.getGlobalBestPosition().size(); ++i) {
+    for (size_t i = 0; i < swarm.getGlobalBestPosition().size(); ++i)
+    {
         std::cout << "║ " << std::setw(63) << swarm.getGlobalBestPosition()[i] << " ║" << std::endl;
     }
     std::cout << "╠═════════════════════════════════════════════════════════════════╣" << std::endl;

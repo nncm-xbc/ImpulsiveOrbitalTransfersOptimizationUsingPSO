@@ -59,7 +59,6 @@ void PSO<T, Fun>::solve()
 
         if(iter%100 == 0)
         {
-            std::cout << "Logging" << std::endl;
             conv_logger.log(iter, swarm.getGlobalBestValue(), swarm.getInertiaWeight(), swarm.getSocialWeight(), swarm.getCognitiveWeight());
         }
     }
@@ -102,4 +101,4 @@ void PSO<T, Fun>::printResults() const
 }
 
 // Explicit instantiation
-template class PSO<double, std::function<double(double*, size_t)>>;
+template class PSO<double, std::function<double(double*)>>;

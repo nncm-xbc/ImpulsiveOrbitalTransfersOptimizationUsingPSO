@@ -68,7 +68,6 @@ class Swarm
         T _socialWeight;
         std::vector<T> _lowerBounds;
         std::vector<T> _upperBounds;
-        std::vector<T> _adjustedRange;
         std::vector<T> _gBestPos;
         T _gBestVal;
         std::mt19937 _rng;

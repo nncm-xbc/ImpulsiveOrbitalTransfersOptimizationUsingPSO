@@ -23,21 +23,7 @@ Swarm<T, Fun>::Swarm(const size_t &numParticles,
         _socialWeight(socialWeight),
         _lowerBounds(lowerBounds),
         _upperBounds(upperBounds)
-        {
-            _dis = std::vector<std::uniform_real_distribution<T>>(_dimension);
-            _adjustedRange = std::vector<T>(_dimension);
-
-            double margin = 0.05;
-
-            for (size_t i = 0; i < dimension; ++i)
-            {
-                double range = upperBounds[i] - lowerBounds[i];
-                double adjustedLower = lowerBounds[i] + (margin * range);
-                double adjustedUpper = upperBounds[i] - (margin * range);
-                _adjustedRange[i] = adjustedUpper - adjustedLower;
-                _dis[i] = (std::uniform_real_distribution<T>(adjustedLower, adjustedUpper));
-            }
-        }
+        {}
 
 template <typename T, typename Fun> Swarm<T, Fun>::~Swarm()
 {
@@ -47,18 +33,29 @@ template <typename T, typename Fun> Swarm<T, Fun>::~Swarm()
 template <typename T, typename Fun>
 void Swarm<T, Fun>::init()
 {
+    std::random_device rd;
+    _rng = std::mt19937(rd());
+    _dis = std::vector<std::uniform_real_distribution<T>>(_dimension);
     _gBestVal = std::numeric_limits<T>::max();
     _gBestPos.resize(_dimension);
 
+    double margin = 0.05;
+
+    for (size_t i = 0; i < _dimension; ++i)
+    {
+        double range = _upperBounds[i] - _lowerBounds[i];
+        double adjustedLower = _lowerBounds[i] + (margin * range);
+        double adjustedUpper = _upperBounds[i] - (margin * range);
+        _dis[i] = (std::uniform_real_distribution<T>(adjustedLower, adjustedUpper));
+    }
+
     for(size_t i = 0; i < _numParticles; ++i) {
-        std::random_device rd;
-        _rng = std::mt19937(rd());
-        particles.emplace_back(Particle<T, Fun>(_objectiveFunction, _dimension, _rng, _dis, _adjustedRange));
+        particles.emplace_back(Particle<T, Fun>(_objectiveFunction, _dimension, _rng, _dis, _lowerBounds, _upperBounds));
     }
 
     for (size_t i = 0; i < _numParticles; i++)
     {
-        std::cout << "Particle" << i << " x: " << particles[i].getPosition()[0] << ";  y: "<< particles[i].getPosition()[1] << ";   val : "<< particles[i].getValue() << std::endl;
+        std::cout << "Particle" << i << " x: " << particles[i].getPosition()[0] << ";  y: "<< particles[i].getPosition()[1] << ";  z: "<< particles[i].getPosition()[2] << ";  w: "<< particles[i].getPosition()[3] << ";   val : "<< particles[i].getValue() << std::endl;
     }
 }
 
@@ -71,14 +68,17 @@ void Swarm<T, Fun>::updatePosition(Particle<T, Fun> &particle)
 
     for (size_t i = 0; i < _dimension; ++i)
     {
+
         newPosition[i] += velocity[i];
 
+        // boundary checks
         if (newPosition[i] < _lowerBounds[i])
         {
             newPosition[i] = _lowerBounds[i];
             std::vector<T> newVelocity = particle.getVelocity();
             newVelocity[i] = 0.0;
             particle.setVelocity(newVelocity);
+            //TODO: set cognitive weight to zero.
         }
         else if (newPosition[i] > _upperBounds[i])
         {
@@ -87,6 +87,7 @@ void Swarm<T, Fun>::updatePosition(Particle<T, Fun> &particle)
             std::vector<T> newVelocity = particle.getVelocity();
             newVelocity[i] = 0.0;
             particle.setVelocity(newVelocity);
+            //TODO: set cognitive weight to zero.
         }
     }
     particle.setPosition(newPosition, _objectiveFunction);
@@ -126,8 +127,7 @@ void Swarm<T, Fun>::updatePBestPos(Particle<T, Fun> &particle)
 template <typename T, typename Fun>
 void Swarm<T, Fun>::updatePBestVal(Particle<T, Fun> &particle)
 {
-    particle.setBestValue(
-        _objectiveFunction(particle.getBestPosition().data(), _dimension));
+    particle.setBestValue(_objectiveFunction(particle.getBestPosition().data()));
 }
 
 template <typename T, typename Fun> void Swarm<T, Fun>::updateGBestPos()
@@ -265,4 +265,4 @@ template <typename T, typename Fun> void Swarm<T, Fun>::deallocateMemory()
 }
 
 // Explicit instantiation
-template class Swarm<double, std::function<double(double*, size_t)>>;
+template class Swarm<double, std::function<double(double*)>>;

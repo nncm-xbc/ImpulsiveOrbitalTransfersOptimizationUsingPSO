@@ -10,10 +10,12 @@
 template <typename T, typename Fun> class Particle
 {
     public:
-        Particle(const Fun objectiveFunction, const size_t &dimension,
+        Particle(const Fun objectiveFunction,
+                const size_t &dimension,
                 std::mt19937 &rng,
                 std::vector<std::uniform_real_distribution<T>> &dis,
-                std::vector<T> adjustedRange);
+                std::vector<T> lowerBounds,
+                std::vector<T> upperBounds);
         Particle() = default;
 
         // Setters
@@ -45,21 +47,23 @@ template <typename T, typename Fun>
 Particle<T, Fun>::Particle(const Fun objectiveFunction, const size_t &dimension,
                            std::mt19937 &rng,
                            std::vector<std::uniform_real_distribution<T>> &dis,
-                           std::vector<T> adjustedRange)
+                           std::vector<T> lowerBounds,
+                           std::vector<T> upperBounds)
     : _dimension(dimension),
     _position(dimension),
     _velocity(dimension),
     _bestPosition(dimension)
-    {
+{
     double velocityScale = 0.1; // 10% of position range
+
     for (size_t i = 0; i < _dimension; ++i)
     {
         _position[i] = dis[i](rng);
-        _velocity[i] = velocityScale * adjustedRange[i] * (dis[i](rng) - 0.5);
+        _velocity[i] = velocityScale * (dis[i](rng)-0.5);
     }
 
     _bestPosition = _position;
-    _value = objectiveFunction(_position.data(), _dimension);
+    _value = objectiveFunction(_position.data());
     _bestValue = _value;
 }
 
@@ -73,7 +77,7 @@ void Particle<T, Fun>::setPosition(const std::vector<T> &position,
         throw std::invalid_argument("Position dimension mismatch");
     }
     _position = position;
-    _value = objectiveFunction(_position.data(), _dimension);
+    _value = objectiveFunction(_position.data());
 }
 
 template <typename T, typename Fun>

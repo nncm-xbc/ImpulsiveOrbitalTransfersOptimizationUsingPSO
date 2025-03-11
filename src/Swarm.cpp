@@ -37,7 +37,7 @@ void Swarm<T, Fun>::init()
     _rng = std::mt19937(rd());
     _dis = std::vector<std::uniform_real_distribution<T>>(_dimension);
     _gBestVal = std::numeric_limits<T>::max();
-    _gBestPos.resize(_dimension);
+    _gBestPos.resize(_dimension, std::numeric_limits<double>::quiet_NaN());
 
     double margin = 0.05;
 
@@ -52,11 +52,12 @@ void Swarm<T, Fun>::init()
     for(size_t i = 0; i < _numParticles; ++i) {
         particles.emplace_back(Particle<T, Fun>(_objectiveFunction, _dimension, _rng, _dis, _lowerBounds, _upperBounds));
     }
-
+/*
     for (size_t i = 0; i < _numParticles; i++)
     {
         std::cout << "Particle" << i << " x: " << particles[i].getPosition()[0] << ";  y: "<< particles[i].getPosition()[1] << ";  z: "<< particles[i].getPosition()[2] << ";  w: "<< particles[i].getPosition()[3] << ";   val : "<< particles[i].getValue() << std::endl;
     }
+*/
 }
 
 template <typename T, typename Fun>
@@ -87,7 +88,6 @@ void Swarm<T, Fun>::updatePosition(Particle<T, Fun> &particle)
             std::vector<T> newVelocity = particle.getVelocity();
             newVelocity[i] = 0.0;
             particle.setVelocity(newVelocity);
-            //TODO: set cognitive weight to zero.
         }
     }
     particle.setPosition(newPosition, _objectiveFunction);
@@ -137,8 +137,8 @@ template <typename T, typename Fun> void Swarm<T, Fun>::updateGBestPos()
         T newBestValue = particles[i].getBestValue();
         if (newBestValue < _gBestVal)
         {
-            std::cout << "Update GLOBAL BEST !!!!" << std::endl;
-            std::cout << "Global best value update: " << newBestValue << "  vs  " << _gBestVal << std::endl;
+            //std::cout << "Update GLOBAL BEST !!!!" << std::endl;
+            //std::cout << "Global best value update: " << newBestValue << "  vs  " << _gBestVal << std::endl;
 
             _gBestVal = newBestValue;
             _gBestPos = particles[i].getBestPosition();

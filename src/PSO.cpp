@@ -1,5 +1,7 @@
 #include "PSO.hpp"
 #include "Logger.hpp"
+#include "ExactSolution.hpp"
+#include "OrbitProblem.hpp"
 
 #include <omp.h>
 #include <iomanip>
@@ -33,25 +35,46 @@ void PSO<T, Fun>::solve()
     swarm.init();
     swarm.info();
 
+    HohmannSolution<T> exactSolution = HohmannSolution<T>(constant::R1,constant::R2,constant::MU);
+
     Logger conv_logger("../ressources/convergence_log.csv");
 
     for (size_t iter = 0; iter < _maxIterations; ++iter)
     {
-        //std::cout << "Iteration: " << iter << std::endl;
+        //std::cout << "Iteration: " << iter << " START ----------"<< std::endl;
         std::vector<T> GBPos_previous = swarm.getGlobalBestPosition();
+        //std::cout << "Global Best Pos_previous: " << GBPos_previous[0] << std::endl;
+
 
         for (size_t i = 0; i < swarm.getNumParticles(); ++i)
         {
             auto &particle = swarm.particles[i];
+/*
+            std::cout << "PARTICLE : " << i << " START --- Position: " << particle.getPosition()[0]
+                << " Velocity: " << particle.getVelocity()[0]
+                << " PBest: " << particle.getBestPosition()[0]
+                << " GBest: " << swarm.getGlobalBestPosition()[0]
+            << std::endl;
+*/
 
             swarm.updateVelocity(particle);
             swarm.updatePosition(particle);
             swarm.updatePBestPos(particle);
+/*
+            std::cout << "PARTICLE : " << i << " END --- Position: " << particle.getPosition()[0]
+                << " Velocity: " << particle.getVelocity()[0]
+                << " PBest: " << particle.getBestPosition()[0]
+                << " GBest: " << swarm.getGlobalBestPosition()[0]
+            << std::endl;
+*/
         }
         swarm.updateGBestPos();
         updateWC(GBPos_previous, iter);
 
-        if (swarm.getGlobalBestValue() < _tolerance)
+        T error = exactSolution.getError(swarm.getGlobalBestValue());
+        std::cout << "Error: " << error << std::endl;
+
+        if (error < _tolerance)
         {
             std::cout << "Convergence reached !!" << std::endl;
             break;
@@ -61,10 +84,11 @@ void PSO<T, Fun>::solve()
         {
             conv_logger.log(iter, swarm.getGlobalBestValue(), swarm.getInertiaWeight(), swarm.getSocialWeight(), swarm.getCognitiveWeight());
         }
+        //std::cout << "Iteration: " << iter << " END ----------"<< std::endl;
     }
-
     conv_logger.flushBuffer();
 }
+
 
 template <typename T, typename Fun>
 void PSO<T, Fun>::updateWC(std::vector<T> GBPos_previous, size_t iter)

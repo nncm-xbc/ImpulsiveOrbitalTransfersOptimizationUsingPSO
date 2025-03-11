@@ -2,19 +2,20 @@
 #define ORBIT_HPP
 
 #include <vector>
+#include "constants.hpp"
 
 template<typename T, typename Fun>
 class OrbitTransferObjective
 {
     private:
-        double _R1; // Initial radius
-        double _R2; // Final radius
-        double _Rmax; // Maximum allowed radius
-        double _MU = 398600.4418;
-
         std::pair<T, T> calculateVelocity(double r);
 
     public:
+        double _R1; // Initial radius
+        double _R2; // Final radius
+        double _MU;
+        double _Rmax; // Maximum allowed
+
         OrbitTransferObjective(double r1, double r2, double rmax);
 
         double operator()(double* x);

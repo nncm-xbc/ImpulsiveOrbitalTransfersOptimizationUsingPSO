@@ -26,7 +26,6 @@ set(SOURCES
   src/Swarm.cpp
   src/PSO.cpp
   src/OrbitProblem.cpp
-  src/OrbitTransfer.cpp
   src/Logger.cpp
 )
 

@@ -9,21 +9,16 @@
 int main()
 {
     // Define problem parameters
-    size_t numParticles = 500;
-    size_t impulses = 2;
+    size_t numParticles = 100;
+    // dim 4 = 2 angles + 2 impulse directions
     size_t dimension = 4;
     size_t maxIterations = 10000;
-    double tolerance = 1e-12;
+    double tolerance = 1e-2;
     double inertiaWeight = 0.5;
     double cognitiveWeight = 2.0;
     double socialWeight = 2.0;
 
-    // Init orbit transfer problem
-    //Distance Unit : 1DU = 6378.165 km
-    double R1 = 16678.0/6378.165;
-    double R2 = 42164.0/6378.165;
-    double Rmax = 42164.0/6378.165;
-    OrbitTransferObjective<double, std::function<double(double*)>> objectiveFunction(R1, R2, Rmax);
+    OrbitTransferObjective<double, std::function<double(double*)>> objectiveFunction(constant::R1, constant::R2, constant::Rmax);
 
     std::vector<double> lowerBounds(dimension);
     std::vector<double> upperBounds(dimension);

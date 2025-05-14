@@ -27,6 +27,13 @@ set(SOURCES
   src/PSO.cpp
   src/OrbitProblem.cpp
   src/Logger.cpp
+  src/rendering/Animation.cpp
+  src/rendering/Camera.cpp
+  src/rendering/ImpulseVisu.cpp
+  src/rendering/OrbitModel.cpp
+  src/rendering/RenderEngine.cpp
+  src/rendering/Shader.cpp
+  src/rendering/TransferModel.cpp
 )
 
 # Include directories
@@ -36,11 +43,62 @@ add_library(PSO_lib ${SOURCES})
 # Main executable
 add_executable(main src/main.cpp)
 
+# Secondary rendering executable
+add_executable(rendering src/rendering/main.cpp)
+
 target_link_libraries(main PRIVATE PSO_lib)
+target_link_libraries(rendering PRIVATE PSO_lib)
 
 # Link OpenMP if found
-target_link_libraries(main PRIVATE
-    $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>)
+target_link_libraries(main PRIVATE $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>)
+
+# Link OpenGL and GLFW
+#set(OPENGL_INCLUDE_DIR "/nix/store/v9hsgy7dqyax5darjiqdn1ikmswwn6f2-orb-pso-tools/include")
+#set(OPENGL_opengl_LIBRARY "/nix/store/v9hsgy7dqyax5darjiqdn1ikmswwn6f2-orb-pso-tools/libGL.so")
+#set(OPENGL_glx_LIBRARY "/nix/store/v9hsgy7dqyax5darjiqdn1ikmswwn6f2-orb-pso-tools/libGLX.so")
+
+find_library(OPENGL_opengl_LIBRARY 
+    NAMES GL
+    PATHS "/nix/store/v9hsgy7dqyax5darjiqdn1ikmswwn6f2-orb-pso-tools"
+    PATH_SUFFIXES lib
+    NO_DEFAULT_PATH
+)
+
+find_library(OPENGL_glx_LIBRARY 
+    NAMES GLX
+    PATHS "/nix/store/v9hsgy7dqyax5darjiqdn1ikmswwn6f2-orb-pso-tools"
+    PATH_SUFFIXES lib
+    NO_DEFAULT_PATH
+)
+
+find_path(OPENGL_INCLUDE_DIR 
+    NAMES GL/gl.h
+    PATHS "/nix/store/knm44q1srs7pb36ywvjzqjv2yc4axkg9-libglvnd-1.7.0-dev/include"
+    PATH_SUFFIXES include
+    NO_DEFAULT_PATH
+)
+
+find_package(OpenGL REQUIRED)
+
+find_path(GLM_INCLUDE_DIR glm/glm.hpp
+    PATHS "/nix/store/jhvm19kxzfkb2jqhqkcflp29dbsff96p-glm-1.0.1/include"
+    NO_DEFAULT_PATH
+)
+include_directories(${GLM_INCLUDE_DIR})
+
+set(GLFW3_INCLUDE_DIR "/nix/store/pihqjg71r401r8z5wf6j4hx3dv69cbqv-glfw-3.4/include")
+find_library(GLFW3_LIBRARY 
+    NAMES glfw glfw3
+    PATHS "/nix/store/pihqjg71r401r8z5wf6j4hx3dv69cbqv-glfw-3.4/lib"
+    NO_DEFAULT_PATH
+)
+include_directories(${GLFW3_INCLUDE_DIR})
+
+target_link_libraries(rendering PRIVATE
+  ${OPENGL_LIBRARIES} 
+  ${GLFW3_LIBRARY}
+  PSO_lib
+)
 
 # ------------------------------------------------------------------------------------------------------
 # Testing

@@ -1,6 +1,9 @@
+#ifndef ANIMATION_HPP
+#define ANIMATION_HPP
+
 class Animation {
 public:
-    Animation();
+    Animation(float duration = 5.0f);
 
     // Animation control
     void start();
@@ -25,3 +28,5 @@ private:
     float speed_;
     bool playing_;
 };
+
+#endif // ANIMATION_HPP

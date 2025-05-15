@@ -2,7 +2,7 @@
 #define ORBIT_HPP
 
 #include <vector>
-#include "constants.hpp"
+#include "Constants.hpp"
 
 template<typename T, typename Fun>
 class OrbitTransferObjective

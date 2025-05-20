@@ -1,6 +1,7 @@
 #ifndef PSO_HPP
 #define PSO_HPP
 
+#include "OrbitProblem.hpp"
 #include "Swarm.hpp"
 
 template <typename T, typename Fun>
@@ -20,6 +21,7 @@ class PSO
 
         void solve();
         void printResults() const;
+        void saveResults(const std::string& filename, OrbitTransferObjective<double, std::function<double(double*)>> orbitProblem);
 
     private:
         Swarm<T, Fun> swarm;

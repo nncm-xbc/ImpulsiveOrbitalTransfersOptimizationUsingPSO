@@ -138,12 +138,12 @@ int main(int argc, char* argv[]) {
         }
     } else {
         // Default case
-        initialOrbit.setCircularOrbit(6671.53, glm::radians(28.5f));
+        initialOrbit.setCircularOrbit(6671.53, 0.0f);
         targetOrbit.setCircularOrbit(26558.56, 0.0f);
         
         // Default transfer parameters
         transferModel.setTwoImpulseTransfer(
-            6671.53, glm::radians(28.5f), 
+            6671.53, 0.0f, 
             26558.56, 0.0f,
             0.0, M_PI  // Example values
         );
@@ -262,7 +262,7 @@ int main(int argc, char* argv[]) {
         impulseModel.render(impulseShader, viewProjection, animation.getProgress());
 
         camera.displayCameraPosition(camera);
-        camera.renderCoordinateAxes(axesShader, viewProjection, axesVAO);
+        //camera.renderCoordinateAxes(axesShader, viewProjection, axesVAO);
         
         // Swap buffers and poll events
         glfwSwapBuffers(window);

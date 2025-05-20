@@ -31,6 +31,7 @@ struct PSOOrbitTransferResult {
     
     // Delta-V information
     std::vector<double> delta_v_magnitudes;
+    std::vector<double> plane_change;
     
     // PSO convergence data
     std::vector<double> iteration_objectives;
@@ -126,14 +127,12 @@ bool loadPSOResultsFromFile(const std::string& filename, PSOOrbitTransferResult&
                         result.delta_v_magnitudes.push_back(std::stod(item));
                     }
                 }
-            }
-            else if (section == "Convergence") {
-                if (key == "objectives") {
+                if (key == "plane_change") {
                     std::istringstream vss(value);
                     std::string item;
-                    result.iteration_objectives.clear();
+                    result.plane_change.clear();
                     while (std::getline(vss, item, ',')) {
-                        result.iteration_objectives.push_back(std::stod(item));
+                        result.delta_v_magnitudes.push_back(std::stod(item));
                     }
                 }
             }

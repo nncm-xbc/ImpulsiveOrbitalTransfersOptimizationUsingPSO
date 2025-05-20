@@ -3,7 +3,6 @@
 #include "ExactSolution.hpp"
 #include "OrbitProblem.hpp"
 
-#include <omp.h>
 #include <iomanip>
 #include <vector>
 
@@ -122,6 +121,71 @@ void PSO<T, Fun>::printResults() const
 
     // Additional information for orbital transfer problems
     std::cout << "\nTotal ΔV for transfer: " << swarm.getGlobalBestValue() << " km/s" << std::endl;
+}
+
+template <typename T, typename Fun>
+void PSO<T, Fun>::saveResults(const std::string& filename, OrbitTransferObjective<double, std::function<double(double*)>> orbitProblem) {
+    std::vector<T> bestSolution = swarm.getGlobalBestPosition();
+
+    double R1 = constant::R1;
+    double R2 = constant::R2;
+    double Rmax = constant::Rmax;
+    double e1 = orbitProblem.getE1();
+    double e2 = orbitProblem.getE2();
+    double i1 = orbitProblem.getI1();
+    double i2 = orbitProblem.getI2();
+    
+    // Get transfer details
+    auto details = orbitProblem.getTransferDetails(bestSolution);
+    
+    std::ofstream outFile(filename);
+    outFile << "# PSO Optimization Results for Orbital Transfer" << std::endl;
+    
+    // Case type determination
+    int caseType = 1;
+    if (i1 != 0.0 || i2 != 0.0) caseType = 2;
+    else if (e1 != 0.0 || e2 != 0.0) caseType = 3;
+    
+    outFile << "# Case " << caseType << ": Transfer between ";
+    switch(caseType) {
+        case 1: outFile << "coplanar circular orbits"; break;
+        case 2: outFile << "non-coplanar circular orbits"; break;
+        case 3: outFile << "elliptic orbits"; break;
+    }
+    outFile << std::endl << std::endl;
+    
+    // Orbit parameters
+    outFile << "[InitialOrbit]" << std::endl;
+    outFile << "radius = " << R1 << std::endl;
+    outFile << "inclination = " << i1 << std::endl;
+    outFile << "raan = 0.0" << std::endl;
+    outFile << "eccentricity = " << e1 << std::endl;
+    outFile << "arg_periapsis = 0.0" << std::endl;
+    
+    outFile << std::endl << "[TargetOrbit]" << std::endl;
+    outFile << "radius = " << R2 << std::endl;
+    outFile << "inclination = " << i2 << std::endl;
+    outFile << "raan = 0.0" << std::endl;
+    outFile << "eccentricity = " << e2 << std::endl;
+    outFile << "arg_periapsis = 0.0" << std::endl;
+    
+    // Transfer parameters
+    outFile << std::endl << "[OptimalTransfer]" << std::endl;
+    outFile << "initial_true_anomaly = " << details["initial_true_anomaly"] << std::endl;
+    outFile << "final_true_anomaly = " << details["final_true_anomaly"] << std::endl;
+    outFile << "transfer_time = " << details["transfer_time"] << std::endl;
+    outFile << "is_three_impulse = " << (details["is_three_impulse"] > 0.5 ? "true" : "false") << std::endl;
+    
+    // Delta-V information
+    outFile << std::endl << "[DeltaV]" << std::endl;
+    outFile << "magnitude = " << details["impulse_mag_1"] << "," << details["impulse_mag_2"] << std::endl;
+    
+    // Add plane change info for non-coplanar transfers
+    if (caseType == 2) {
+        outFile << "plane_change = " << details["plane_change_1"] << "," << details["plane_change_2"] << std::endl;
+    }
+
+    outFile.close();
 }
 
 // Explicit instantiation

@@ -32,10 +32,7 @@ struct PSOOrbitTransferResult {
     // Delta-V information
     std::vector<double> delta_v_magnitudes;
     std::vector<double> plane_change;
-    
-    // PSO convergence data
-    std::vector<double> iteration_objectives;
-    
+
     // Default constructor
     PSOOrbitTransferResult() : 
         initial_radius(0.0), initial_inclination(0.0), initial_raan(0.0), 
@@ -132,7 +129,7 @@ bool loadPSOResultsFromFile(const std::string& filename, PSOOrbitTransferResult&
                     std::string item;
                     result.plane_change.clear();
                     while (std::getline(vss, item, ',')) {
-                        result.delta_v_magnitudes.push_back(std::stod(item));
+                        result.plane_change.push_back(std::stod(item));
                     }
                 }
             }

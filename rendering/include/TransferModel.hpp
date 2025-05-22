@@ -13,7 +13,8 @@ public:
     void initialize();
     void setTwoImpulseTransfer(double initialRadius, double initialInclination,
                                 double targetRadius, double targetInclination,
-                                double initialTrueAnomaly, double finalTrueAnomaly);
+                                double initialTrueAnomaly, double finalTrueAnomaly, 
+                                std::vector<double> impulseMagnitudes);
     void setThreeImpulseTransfer(double initialRadius, double initialInclination,
         double targetRadius, double targetInclination,
         double initialTrueAnomaly, double finalTrueAnomaly, double final_true_anomaly);
@@ -44,6 +45,8 @@ private:
     std::vector<glm::vec3> impulse_directions_;
     std::vector<float> impulse_magnitudes_;
 
-    void generateSimpleTransferTrajectory();
+    void generateTransferTrajectory(std::vector<double> impulseMagnitudes);
+    glm::vec3 calculateOrbitVelocity(float radius, float inclination, float true_anomaly);
+    glm::vec3 calculateOrbitPosition(float radius, float inclination, float true_anomaly);
     void updateBuffers();
 };

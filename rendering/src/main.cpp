@@ -90,6 +90,11 @@ int main(int argc, char* argv[]) {
 
     if (usePSOResults) {
         if (psoResult.initial_eccentricity < 1e-6) {
+            std::cout << " Circular Init Orbit " << std::endl;
+            std::cout << "Params: "<< std::endl;
+            std::cout << "Init radius:" << psoResult.initial_radius << std::endl;
+            std::cout << "Init incl: " << psoResult.initial_inclination << std::endl;
+            std::cout << "Init raan: " << psoResult.initial_raan << std::endl;
             initialOrbit.setCircularOrbit(
                 psoResult.initial_radius, 
                 psoResult.initial_inclination,
@@ -106,6 +111,11 @@ int main(int argc, char* argv[]) {
         }
         
         if (psoResult.target_eccentricity < 1e-6) {
+            std::cout << " Circular Target Orbit " << std::endl;
+            std::cout << "Params: "<< std::endl;
+            std::cout << "Target radius:" << psoResult.target_radius << std::endl;
+            std::cout << "Target incl: " << psoResult.target_inclination << std::endl;
+            std::cout << "Target raan: " << psoResult.target_raan << std::endl;
             targetOrbit.setCircularOrbit(
                 psoResult.target_radius, 
                 psoResult.target_inclination,
@@ -133,7 +143,8 @@ int main(int argc, char* argv[]) {
             transferModel.setTwoImpulseTransfer(
                 psoResult.initial_radius, psoResult.initial_inclination,
                 psoResult.target_radius, psoResult.target_inclination,
-                psoResult.initial_true_anomaly, psoResult.final_true_anomaly
+                psoResult.initial_true_anomaly, psoResult.final_true_anomaly,
+                psoResult.delta_v_magnitudes
             );
         }
     } else {
@@ -145,7 +156,8 @@ int main(int argc, char* argv[]) {
         transferModel.setTwoImpulseTransfer(
             6671.53, 0.0f, 
             26558.56, 0.0f,
-            0.0, M_PI  // Example values
+            0.0, M_PI,
+            { 0.0, 0.0 }
         );
     }
 

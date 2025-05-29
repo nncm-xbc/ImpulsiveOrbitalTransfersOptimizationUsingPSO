@@ -12,7 +12,6 @@ public:
     bool loadFromFiles(const std::string& vertex_path, const std::string& fragment_path);
     bool loadFromSource(const std::string& vertex_source, const std::string& fragment_source);
 
-    // Use this shader
     void use() const;
 
     // Set uniforms

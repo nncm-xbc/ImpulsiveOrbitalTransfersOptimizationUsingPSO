@@ -18,14 +18,66 @@
 #include "Animation.hpp"
 #include "Results.hpp"
 
+// class DebugLine {
+// private:
+//     GLuint vao_, vbo_;
+//     bool initialized_;
+    
+// public:
+//     DebugLine() : vao_(0), vbo_(0), initialized_(false) {}
+    
+//     ~DebugLine() {
+//         if (initialized_) {
+//             glDeleteVertexArrays(1, &vao_);
+//             glDeleteBuffers(1, &vbo_);
+//         }
+//     }
+    
+//     void initialize() {
+//         if (initialized_) return;
+        
+//         glGenVertexArrays(1, &vao_);
+//         glGenBuffers(1, &vbo_);
+        
+//         glm::vec3 lineVertices[2] = {
+//             glm::vec3(0.0f, 0.0f, 0.0f),    // Origin
+//             glm::vec3(0.0f, 0.0f, 10.0f)    // Point along Z-axis
+//         };
+        
+//         glBindVertexArray(vao_);
+//         glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+//         glBufferData(GL_ARRAY_BUFFER, sizeof(lineVertices), lineVertices, GL_STATIC_DRAW);
+        
+//         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+//         glEnableVertexAttribArray(0);
+        
+//         glBindBuffer(GL_ARRAY_BUFFER, 0);
+//         glBindVertexArray(0);
+        
+//         initialized_ = true;
+//     }
+    
+//     void render(const Shader& shader, const glm::mat4& viewProjection, const glm::vec3& color) {
+//         if (!initialized_) return;
+        
+//         shader.use();
+//         shader.setMat4("viewProjection", viewProjection);
+//         shader.setVec3("color", color);
+        
+//         glBindVertexArray(vao_);
+//         glDrawArrays(GL_LINES, 0, 2);
+//         glBindVertexArray(0);
+//     }
+// };
+
 int main(int argc, char* argv[]) {
-    // Initialize GLFW
+    // Init GLFW
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW" << std::endl;
         return -1;
     }
     
-    // Set OpenGL context version
+    // OpenGL context version
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -41,7 +93,7 @@ int main(int argc, char* argv[]) {
     
     glfwMakeContextCurrent(window);
     
-    // Initialize GLAD
+    // Init GLAD
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "Failed to initialize GLAD" << std::endl;
         return -1;
@@ -59,7 +111,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // LOAD SHADERS
+    // Load shaders
     Shader orbitShader;
     Shader transferShader;
     Shader axesShader;
@@ -72,9 +124,11 @@ int main(int argc, char* argv[]) {
         std::cerr << "Failed to load shaders" << std::endl;
         return -1;
     }
- 
+
     Camera camera;
-    Animation animation(5.0f); // 5-second animation
+    camera.setZoom(14000.0f); // Initial zoom level
+    camera.setPosition(glm::vec3(0.0f, 5.0f, 0.0f)); // Initial camera position
+    Animation animation(5.0f);
 
     OrbitModel initialOrbit;
     OrbitModel targetOrbit;
@@ -144,7 +198,8 @@ int main(int argc, char* argv[]) {
                 psoResult.initial_radius, psoResult.initial_inclination,
                 psoResult.target_radius, psoResult.target_inclination,
                 psoResult.initial_true_anomaly, psoResult.final_true_anomaly,
-                psoResult.delta_v_magnitudes
+                //{0.5, 0.5} // TO REMOVE 
+                psoResult.delta_v_magnitudes, psoResult.plane_change
             );
         }
     } else {
@@ -152,12 +207,11 @@ int main(int argc, char* argv[]) {
         initialOrbit.setCircularOrbit(6671.53, 0.0f);
         targetOrbit.setCircularOrbit(26558.56, 0.0f);
         
-        // Default transfer parameters
         transferModel.setTwoImpulseTransfer(
             6671.53, 0.0f, 
             26558.56, 0.0f,
             0.0, M_PI,
-            { 0.0, 0.0 }
+            { 0.0, 0.0 }, { 0.0, 0.0 }
         );
     }
 
@@ -170,7 +224,7 @@ int main(int argc, char* argv[]) {
     camera.setupCoordinateShaders(axesShader);
     camera.setupCoordinateAxes(axesVAO, axesVBO);
     
-    // Setup mouse callbacks for camera control
+    // Mouse callbacks for camera control
     glfwSetWindowUserPointer(window, &camera);
     
     glfwSetCursorPosCallback(window, [](GLFWwindow* window, double x, double y) {
@@ -194,6 +248,9 @@ int main(int argc, char* argv[]) {
         camera->zoom(yoffset);
     });
 
+    //DebugLine debugLine;
+    //debugLine.initialize();
+
     std::cout << "Controls:\n"
     << "  Left mouse button + drag: Rotate camera\n"
     << "  Scroll wheel: Zoom in/out\n"
@@ -202,12 +259,11 @@ int main(int argc, char* argv[]) {
     << "  +/-: Adjust animation speed\n"
     << "  Esc: Exit\n";
 
-    // Main rendering loop
     float animation_speed = 1.0f;
     
     // Main rendering loop
     while (!glfwWindowShouldClose(window)) {
-        // Process time
+
         float currentFrame = glfwGetTime();
         static float lastFrame = currentFrame;
         float deltaTime = currentFrame - lastFrame;
@@ -250,14 +306,12 @@ int main(int argc, char* argv[]) {
         // Update animation
         animation.update(deltaTime);
         
-        // Clear the screen
-        glClearColor(0.05f, 0.05f, 0.1f, 1.0f); // Space-like dark background
+        glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
-        // Enable depth testing
         glEnable(GL_DEPTH_TEST);
         
-        // Get view and projection matrices
+        // View and projection matrices
         glm::mat4 view = camera.getViewMatrix();
         glm::mat4 projection = camera.getProjectionMatrix((float)width / height);
         glm::mat4 viewProjection = projection * view;
@@ -265,23 +319,25 @@ int main(int argc, char* argv[]) {
         // Render orbits
         initialOrbit.render(orbitShader, viewProjection, glm::vec3(0.2f, 0.6f, 1.0f)); // Blue for initial
         targetOrbit.render(orbitShader, viewProjection, glm::vec3(1.0f, 0.3f, 0.3f));  // Red for target
-        
+
+        transferModel.renderCompleteEllipse(orbitShader, viewProjection, glm::vec3(1.0f, 1.0f, 0.3f));
+
         // Render transfer trajectory with animation
-        transferModel.render(transferShader, viewProjection, 
-                                    glm::vec3(1.0f, 1.0f, 0.5f), animation.getProgress());
+        //transferModel.render(transferShader, viewProjection, glm::vec3(1.0f, 1.0f, 0.5f), animation.getProgress());
         
         // Render impulse arrows
-        impulseModel.render(impulseShader, viewProjection, animation.getProgress());
+        //impulseModel.render(impulseShader, viewProjection, animation.getProgress());
 
         camera.displayCameraPosition(camera);
         //camera.renderCoordinateAxes(axesShader, viewProjection, axesVAO);
+
+        //debugLine.render(orbitShader, viewProjection, glm::vec3(1.0f, 1.0f, 1.0f));
         
-        // Swap buffers and poll events
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
         
-    // Handle exit with Escape key
+    // Handle exit with escape key
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 

@@ -5,20 +5,18 @@ class Animation {
 public:
     Animation(float duration = 5.0f);
 
-    // Animation control
+    // Controls
     void start();
     void pause();
     void reset();
     void setSpeed(float speed);
     void setDuration(float duration);
 
-    // Update animation state
     void update(float delta_time);
 
-    // Get animation progress (0.0 to 1.0)
+    // Animation progress (0.0 to 1.0)
     float getProgress() const;
 
-    // Animation state
     bool isPlaying() const;
     bool isFinished() const;
 

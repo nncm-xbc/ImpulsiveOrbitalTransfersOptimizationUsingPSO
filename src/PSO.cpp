@@ -71,7 +71,7 @@ void PSO<T, Fun>::solve()
         updateWC(GBPos_previous, iter);
 
         T error = exactSolution.getError(swarm.getGlobalBestValue());
-        std::cout << "Error: " << error << std::endl;
+        //std::cout << "Error: " << error << std::endl;
 
         if (error < _tolerance)
         {

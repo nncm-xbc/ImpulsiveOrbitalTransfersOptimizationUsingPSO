@@ -132,7 +132,6 @@ std::pair<Vector3, Vector3> OrbitTransferObjective<T, Fun>::solveLambert(
     
     // If the time of flight is less than minimum, return error
     if (tof < t_min) {
-        // In a real implementation, you'd want to handle this error
         return std::make_pair(Vector3(), Vector3());
     }
     
@@ -144,7 +143,7 @@ std::pair<Vector3, Vector3> OrbitTransferObjective<T, Fun>::solveLambert(
     double tolerance = 1e-8;
     
     for (int i = 0; i < max_iter && std::abs(tof_current - tof) > tolerance; ++i) {
-        a = a * 1.02; // Increment a
+        a = a * 1.02;
         
         //  time of flight with current a
         double alpha = 2.0 * std::asin(std::sqrt(s / (2.0 * a)));
@@ -157,7 +156,7 @@ std::pair<Vector3, Vector3> OrbitTransferObjective<T, Fun>::solveLambert(
         tof_current = std::sqrt(a*a*a / mu) * ((alpha - std::sin(alpha)) - (beta - std::sin(beta)));
     }
     
-    //  Lagrange coefficients
+    //  Lagrange coeffs
     double f = 1.0 - r2_mag / a * (1.0 - std::cos(dnu));
     double g = r1_mag * r2_mag * std::sin(dnu) / std::sqrt(mu * a);
     double g_dot = 1.0 - r1_mag / a * (1.0 - std::cos(dnu));
@@ -179,14 +178,13 @@ std::pair<Vector3, Vector3> OrbitTransferObjective<T, Fun>::solveLambert(
 template <typename T, typename Fun>
 double OrbitTransferObjective<T, Fun>::computePeriapsis(const std::vector<T>& x)
 {
-    double departureTrueAnomaly = x[0]; // True anomaly at departure point
-    double firstImpulseMagnitude = x[2]; // First impulse magnitude
-    double firstImpulseDirection = x[4]; // First impulse direction
+    double departureTrueAnomaly = x[0];
+    double firstImpulseMagnitude = x[2];
+    double firstImpulseDirection = x[4];
     
-    //  radius at departure point (for elliptical orbits)
+    //  radius at departure point
     double r_departure = _R1 * (1 - _e1*_e1) / (1 + _e1 * std::cos(departureTrueAnomaly));
     
-    // Get velocity at departure point
     auto v_init = calculateVelocity(_R1, _e1, departureTrueAnomaly);
     
     //  post-impulse velocity components
@@ -205,14 +203,13 @@ double OrbitTransferObjective<T, Fun>::computePeriapsis(const std::vector<T>& x)
 template <typename T, typename Fun>
 double OrbitTransferObjective<T, Fun>::computeApoapsis(const std::vector<T>& x)
 {
-    double departureTrueAnomaly = x[0]; // True anomaly at departure point
-    double firstImpulseMagnitude = x[2]; // First impulse magnitude
-    double firstImpulseDirection = x[4]; // First impulse direction
+    double departureTrueAnomaly = x[0];
+    double firstImpulseMagnitude = x[2];
+    double firstImpulseDirection = x[4];
     
-    //  radius at departure point (for elliptical orbits)
+    //  radius at departure point
     double r_departure = _R1 * (1 - _e1*_e1) / (1 + _e1 * std::cos(departureTrueAnomaly));
     
-    // Get velocity at departure point
     auto v_init = calculateVelocity(_R1, _e1, departureTrueAnomaly);
     
     //  post-impulse velocity components
@@ -273,7 +270,6 @@ std::map<std::string, double> OrbitTransferObjective<T, Fun>::getTransferDetails
 {
     std::map<std::string, double> results;
     
-    // Extract parameters from solution vector
     double departureTrueAnomaly = x[0];
     double arrivalTrueAnomaly = x[1];
     double firstImpulseMagnitude = x[2];
@@ -281,7 +277,6 @@ std::map<std::string, double> OrbitTransferObjective<T, Fun>::getTransferDetails
     double firstImpulseDirection = x[4];
     double transferTime = x[5];
     
-    // Store basic parameters
     results["initial_true_anomaly"] = departureTrueAnomaly;
     results["final_true_anomaly"] = arrivalTrueAnomaly;
     results["transfer_time"] = transferTime;
@@ -314,7 +309,6 @@ std::map<std::string, double> OrbitTransferObjective<T, Fun>::getTransferDetails
     if (_i1 != 0.0 || _i2 != 0.0) {
         // Simplified calculation of inclination distribution
         double total_inc_change = std::abs(_i2 - _i1);
-        // Distribution between the two maneuvers would be d from impulse parameters
         double inc_change_1 = firstImpulseDirection; // This is a simplification
         double inc_change_2 = total_inc_change - inc_change_1;
         
@@ -329,5 +323,4 @@ std::map<std::string, double> OrbitTransferObjective<T, Fun>::getTransferDetails
     return results;
 }
 
-// Explicit instantiation
 template class OrbitTransferObjective<double, std::function<double(double*)>>;

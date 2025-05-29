@@ -140,3 +140,16 @@ void Camera::updatePosition() {
     float z = distance_ * cos(elevation_) * cos(azimuth_);
     position_ = glm::vec3(x, y, z);
 }
+
+void Camera::setPosition(const glm::vec3& position) {
+    position_ = position;
+}
+
+void Camera::setTarget(const glm::vec3& target) {
+    target_ = target;
+}
+
+void Camera::setZoom(float zoom) {
+    distance_ = zoom;
+    updatePosition();
+}

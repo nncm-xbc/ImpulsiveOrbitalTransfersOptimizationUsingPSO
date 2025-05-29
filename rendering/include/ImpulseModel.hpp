@@ -16,14 +16,14 @@ class ImpulseVisualization {
         void initialize();
         void setImpulses(const std::vector<glm::vec3>& positions,
                          const std::vector<glm::vec3>& directions,
-                         const std::vector<float>& magnitudes);
+                         const std::vector<double>& magnitudes);
         void render(const Shader& shader, const glm::mat4& view_projection, float animation_progress = 1.0f);
 
     private:
         // Impulse data
         std::vector<glm::vec3> positions_;
         std::vector<glm::vec3> directions_;
-        std::vector<float> magnitudes_;
+        std::vector<double> magnitudes_;
 
         // OpenGL objects
         GLuint vao_, vbo_, ebo_;

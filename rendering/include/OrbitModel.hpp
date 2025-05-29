@@ -20,7 +20,7 @@ class OrbitModel {
 
     private:
         double radius_;          // Radius for circular orbits, semi-major axis for elliptical
-        double eccentricity_;    // Orbital eccentricity (0 for circular)
+        double eccentricity_;    // Orbital eccentricity
         double inclination_;     // Orbit inclination in radians
         double raan_;            // Right ascension of ascending node in radians
         double arg_periapsis_;   // Argument of periapsis in radians

@@ -22,6 +22,9 @@ class Camera {
         void setupCoordinateAxes(GLuint& vao, GLuint& vbo);
         void renderCoordinateAxes(const Shader& shader, const glm::mat4& viewProjection, GLuint vao);
         void displayCameraPosition(const Camera& camera);
+        void setPosition(const glm::vec3& position);
+        void setTarget(const glm::vec3& target);
+        void setZoom(float zoom);
         
     private:
         float distance_;

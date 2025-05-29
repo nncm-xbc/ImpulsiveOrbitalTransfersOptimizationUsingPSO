@@ -10,7 +10,6 @@
 Shader::Shader() : ID(0) {}
 
 bool Shader::loadFromFiles(const std::string& vertexPath, const std::string& fragmentPath) {
-    // 1. Retrieve the source code from files
     std::string vertexCode;
     std::string fragmentCode;
     std::ifstream vShaderFile;
@@ -45,7 +44,6 @@ bool Shader::loadFromSource(const std::string& vertexCode, const std::string& fr
     const char* vShaderCode = vertexCode.c_str();
     const char* fShaderCode = fragmentCode.c_str();
     
-    // 2. Compile shaders
     unsigned int vertex, fragment;
     
     // Vertex Shader
@@ -66,8 +64,7 @@ bool Shader::loadFromSource(const std::string& vertexCode, const std::string& fr
     glAttachShader(ID, fragment);
     glLinkProgram(ID);
     if (!checkCompileErrors(ID, "PROGRAM")) return false;
-    
-    // Delete shaders as they're linked into our program
+
     glDeleteShader(vertex);
     glDeleteShader(fragment);
     
@@ -79,7 +76,7 @@ void Shader::use() const {
     glUseProgram(ID); 
 }
 
-// Utility uniform functions
+// Utility functions
 void Shader::setBool(const std::string &name, bool value) const {
     glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value); 
 }

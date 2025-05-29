@@ -27,9 +27,9 @@ struct PSOOrbitTransferResult {
     
     // For three-impulse transfers
     bool is_three_impulse;
-    double intermediate_radius;     // For three-impulse transfers
+    double intermediate_radius;
     
-    // Delta-V information
+    // Delta-V info
     std::vector<double> delta_v_magnitudes;
     std::vector<double> plane_change;
 
@@ -43,7 +43,6 @@ struct PSOOrbitTransferResult {
         is_three_impulse(false), intermediate_radius(0.0) {}
 };
 
-// Function to load PSO results from a file
 bool loadPSOResultsFromFile(const std::string& filename, PSOOrbitTransferResult& result) {
     std::ifstream file(filename);
     if (!file.is_open()) {

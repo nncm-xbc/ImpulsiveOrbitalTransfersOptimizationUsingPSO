@@ -14,7 +14,7 @@ public:
     void setTwoImpulseTransfer(double initialRadius, double initialInclination,
                                 double targetRadius, double targetInclination,
                                 double initialTrueAnomaly, double finalTrueAnomaly, 
-                                std::vector<double> impulseMagnitudes);
+                                std::vector<double> impulseMagnitudes, std::vector<double> planeChange);
     void setThreeImpulseTransfer(double initialRadius, double initialInclination,
         double targetRadius, double targetInclination,
         double initialTrueAnomaly, double finalTrueAnomaly, double final_true_anomaly);
@@ -23,8 +23,9 @@ public:
 
     const std::vector<glm::vec3>& getImpulsePositions() const;
     const std::vector<glm::vec3>& getImpulseDirections() const;
-    const std::vector<float>& getImpulseMagnitudes() const;
-    
+    const std::vector<double>& getImpulseMagnitudes() const;
+    void generateCompleteTransferEllipse();
+    void renderCompleteEllipse(const Shader& shader, const glm::mat4& view_projection, const glm::vec3& color);
 
 private:
     // Transfer parameters
@@ -34,6 +35,8 @@ private:
     double target_inclination_;
     double initial_true_anomaly_;
     double final_true_anomaly_;
+    float transfer_semi_major_;
+    float transfer_eccentricity_;
     
     // OpenGL objects
     GLuint vao_, vbo_;
@@ -43,9 +46,11 @@ private:
     std::vector<glm::vec3> transfer_points_;
     std::vector<glm::vec3> impulse_positions_;
     std::vector<glm::vec3> impulse_directions_;
-    std::vector<float> impulse_magnitudes_;
+    std::vector<glm::vec3> complete_ellipse_points_;
+    std::vector<double> impulse_magnitudes_;
+    std::vector<double> plane_change_;
 
-    void generateTransferTrajectory(std::vector<double> impulseMagnitudes);
+    void generateTransferTrajectory();
     glm::vec3 calculateOrbitVelocity(float radius, float inclination, float true_anomaly);
     glm::vec3 calculateOrbitPosition(float radius, float inclination, float true_anomaly);
     void updateBuffers();

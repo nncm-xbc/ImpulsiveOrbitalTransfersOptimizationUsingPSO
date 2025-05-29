@@ -69,7 +69,6 @@ void OrbitModel::generateOrbitPoints(int resolution) {
     for (int i = 0; i < resolution; ++i) {
         double theta = 2.0 * M_PI * i / resolution;
         
-        // For elliptical orbits, calculate radius using the orbit equation
         double r;
         if (eccentricity_ < 1e-6) { // Circular orbit
             r = radius_;
@@ -78,25 +77,29 @@ void OrbitModel::generateOrbitPoints(int resolution) {
                 (1.0 + eccentricity_ * cos(theta));
         }
         
-        // Calculate position in orbital plane
+        // Position in orbital plane
         double x = r * cos(theta);
         double y = r * sin(theta);
         double z = 0.0;
         
-        // Apply rotations for inclination, RAAN, and argument of periapsis
-        // First, rotate by argument of periapsis around z-axis
+        // Rotate by argument of periapsis around z-axis
         double x1 = x * cos(arg_periapsis_) - y * sin(arg_periapsis_);
         double y1 = x * sin(arg_periapsis_) + y * cos(arg_periapsis_);
         
-        // Then, rotate by inclination around x-axis
+        // Rotate by inclination around x-axis
         double y2 = y1 * cos(inclination_);
         double z2 = y1 * sin(inclination_);
         
-        // Finally, rotate by RAAN around z-axis
+        // Rotate by RAAN around z-axis
         double x3 = x1 * cos(raan_) - y2 * sin(raan_);
         double y3 = x1 * sin(raan_) + y2 * cos(raan_);
         
         orbit_points_.push_back(glm::vec3(x3, z2, y3)); // Note: y and z swapped for OpenGL
+    }
+
+    float visualScale = 1000.0f;
+    for (auto& point : orbit_points_) {
+        point *= visualScale;
     }
 }
 

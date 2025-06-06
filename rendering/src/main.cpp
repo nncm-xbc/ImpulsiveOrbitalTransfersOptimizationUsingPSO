@@ -197,6 +197,7 @@ int main(int argc, char* argv[]) {
             transferModel.setTwoImpulseTransfer(
                 psoResult.initial_radius, psoResult.initial_inclination,
                 psoResult.target_radius, psoResult.target_inclination,
+                psoResult.initial_eccentricity, psoResult.target_eccentricity,
                 psoResult.initial_true_anomaly, psoResult.final_true_anomaly,
                 //{0.5, 0.5} // TO REMOVE 
                 psoResult.delta_v_magnitudes, psoResult.plane_change
@@ -210,6 +211,7 @@ int main(int argc, char* argv[]) {
         transferModel.setTwoImpulseTransfer(
             6671.53, 0.0f, 
             26558.56, 0.0f,
+            0.0, 0.0,
             0.0, M_PI,
             { 0.0, 0.0 }, { 0.0, 0.0 }
         );
@@ -323,13 +325,13 @@ int main(int argc, char* argv[]) {
         transferModel.renderCompleteEllipse(orbitShader, viewProjection, glm::vec3(1.0f, 1.0f, 0.3f));
 
         // Render transfer trajectory with animation
-        //transferModel.render(transferShader, viewProjection, glm::vec3(1.0f, 1.0f, 0.5f), animation.getProgress());
+        transferModel.render(transferShader, viewProjection, glm::vec3(1.0f, 1.0f, 0.5f), animation.getProgress());
         
         // Render impulse arrows
-        //impulseModel.render(impulseShader, viewProjection, animation.getProgress());
+        impulseModel.render(impulseShader, viewProjection, animation.getProgress());
 
         camera.displayCameraPosition(camera);
-        //camera.renderCoordinateAxes(axesShader, viewProjection, axesVAO);
+        camera.renderCoordinateAxes(axesShader, viewProjection, axesVAO);
 
         //debugLine.render(orbitShader, viewProjection, glm::vec3(1.0f, 1.0f, 1.0f));
         

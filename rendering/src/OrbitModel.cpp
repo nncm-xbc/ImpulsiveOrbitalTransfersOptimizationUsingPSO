@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <cmath>
+#include <iostream>
 
 #include "Shader.hpp"
 #include "OrbitModel.hpp"

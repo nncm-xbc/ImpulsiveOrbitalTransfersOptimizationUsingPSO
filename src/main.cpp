@@ -8,7 +8,7 @@
 int main()
 {
     // Define problem parameters
-    size_t numParticles = 100;
+    size_t numParticles = 1000;
     size_t dimension = 6;
         // x[0]: departure true anomaly (0 to 2π)
         // x[1]: arrival true anomaly (0 to 2π)
@@ -16,16 +16,19 @@ int main()
         // x[3]: second impulse direction (-π/2 to π/2)
         // x[4]: First impulse direction (0 to 2π)
         // x[5]: time of flight (0 to 1)
-    size_t maxIterations = 10000;
+    size_t maxIterations = 1000;
     double tolerance = 1e-2;
     double inertiaWeight = 0.5;
     double cognitiveWeight = 2.0;
     double socialWeight = 2.0;
 
     OrbitTransferObjective<double, std::function<double(double*)>> objectiveFunction(
-        constant::R1, constant::R2, constant::Rmax,
-        0.0, 0.0, // e1, e2 - For circular orbits
-        28.5 * M_PI / 180.0, 0.0); // i1, i2 - Inclination and RAAN
+        constant::R1, 
+        constant::R2, 
+        constant::Rmax,
+        0.0, 0.0, // e1, e2 - Eccentricities
+        //28.5 * M_PI / 180.0, 0.0); // i1, i2 - Inclinations
+        0.0, 0.0); // i1, i2 - Inclinations
 
     std::vector<double> lowerBounds(dimension);
     std::vector<double> upperBounds(dimension);

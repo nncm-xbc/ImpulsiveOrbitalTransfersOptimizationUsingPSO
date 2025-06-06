@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <memory>
-#include <omp.h>
 #include <iomanip>
 #include <vector>
 
@@ -52,12 +51,12 @@ void Swarm<T, Fun>::init()
     for(size_t i = 0; i < _numParticles; ++i) {
         particles.emplace_back(Particle<T, Fun>(_objectiveFunction, _dimension, _rng, _dis, _lowerBounds, _upperBounds));
     }
-/*
-    for (size_t i = 0; i < _numParticles; i++)
-    {
-        std::cout << "Particle" << i << " x: " << particles[i].getPosition()[0] << ";  y: "<< particles[i].getPosition()[1] << ";  z: "<< particles[i].getPosition()[2] << ";  w: "<< particles[i].getPosition()[3] << ";   val : "<< particles[i].getValue() << std::endl;
-    }
-*/
+
+    // for (size_t i = 0; i < _numParticles; i++)
+    // {
+    //     std::cout << "Particle" << i << " x: " << particles[i].getPosition()[0] << ";  y: "<< particles[i].getPosition()[1] << ";  z: "<< particles[i].getPosition()[2] << ";  w: "<< particles[i].getPosition()[3] << ";   val : "<< particles[i].getValue() << std::endl;
+    // }
+
 }
 
 template <typename T, typename Fun>
@@ -79,12 +78,19 @@ void Swarm<T, Fun>::updatePosition(Particle<T, Fun> &particle)
             std::vector<T> newVelocity = particle.getVelocity();
             newVelocity[i] = 0.0;
             particle.setVelocity(newVelocity);
-            //TODO: set cognitive weight to zero.
         }
         else if (newPosition[i] > _upperBounds[i])
         {
             newPosition[i] = _upperBounds[i];
 
+            std::vector<T> newVelocity = particle.getVelocity();
+            newVelocity[i] = 0.0;
+            particle.setVelocity(newVelocity);
+        }
+        else if (std::isnan(newPosition[i]) || std::isinf(newPosition[i]))
+        {
+            // Reset to a random value within bounds
+            newPosition[i] = _lowerBounds[i] + (_upperBounds[i] - _lowerBounds[i]) * ((double)rand() / RAND_MAX);
             std::vector<T> newVelocity = particle.getVelocity();
             newVelocity[i] = 0.0;
             particle.setVelocity(newVelocity);
@@ -101,14 +107,21 @@ void Swarm<T, Fun>::updateVelocity(Particle<T, Fun> &particle)
     std::vector<T> newVelocity(particle.getVelocity());
     const std::vector<T> &position = particle.getPosition();
     const std::vector<T> &pBest = particle.getBestPosition();
-
+    
     for (size_t i = 0; i < _dimension; ++i)
     {
         T r1 = _dis[i](_rng);
         T r2 = _dis[i](_rng);
-        newVelocity[i] = _inertiaWeight * newVelocity[i] +
-                        _cognitiveWeight * r1 * (pBest[i] - position[i]) +
-                        _socialWeight * r2 * (_gBestPos[i] - position[i]);
+
+        if (position[i] + newVelocity[i] < _lowerBounds[i] || position[i] + newVelocity[i] > _upperBounds[i]) 
+        {
+            newVelocity[i] = 0.0;
+        } else {
+
+            newVelocity[i] = _inertiaWeight * newVelocity[i] +
+                    _cognitiveWeight * r1 * (pBest[i] - position[i]) +
+                    _socialWeight * r2 * (_gBestPos[i] - position[i]);
+        }
     }
     particle.setVelocity(newVelocity);
 }

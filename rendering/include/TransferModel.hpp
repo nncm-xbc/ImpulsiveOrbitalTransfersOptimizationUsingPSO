@@ -13,6 +13,7 @@ public:
     void initialize();
     void setTwoImpulseTransfer(double initialRadius, double initialInclination,
                                 double targetRadius, double targetInclination,
+                                double initialEccentricity, double targetEccentricity,
                                 double initialTrueAnomaly, double finalTrueAnomaly, 
                                 std::vector<double> impulseMagnitudes, std::vector<double> planeChange);
     void setThreeImpulseTransfer(double initialRadius, double initialInclination,
@@ -24,7 +25,6 @@ public:
     const std::vector<glm::vec3>& getImpulsePositions() const;
     const std::vector<glm::vec3>& getImpulseDirections() const;
     const std::vector<double>& getImpulseMagnitudes() const;
-    void generateCompleteTransferEllipse();
     void renderCompleteEllipse(const Shader& shader, const glm::mat4& view_projection, const glm::vec3& color);
 
 private:
@@ -33,6 +33,8 @@ private:
     double target_radius_;
     double initial_inclination_;
     double target_inclination_;
+    double initial_eccentricity_;
+    double target_eccentricity_;
     double initial_true_anomaly_;
     double final_true_anomaly_;
     float transfer_semi_major_;

@@ -16,6 +16,13 @@ template <typename T, typename Fun>
 double OrbitTransferObjective<T, Fun>::operator()(double* x)
 {
     std::vector<double> params(x, x + 6);
+
+    // std::cout << "Vector X : ";
+    // for (const auto& val : params) {
+    //     std::cout << val << " ";
+    // }
+    // std::cout << std::endl;
+    
     return calculateDeltaV(params);
 }
 
@@ -50,6 +57,12 @@ double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>
     double secondImpulseMagnitude = x[3];   // Second impulse magnitude
     double firstImpulseDirection = x[4];    // First impulse direction
     double transferTime = x[5];             // Transfer time
+    //std::cout << "Arrival true anomaly: " << arrivalTrueAnomaly << std::endl;
+    //std::cout << "First impulse magnitude: " << firstImpulseMagnitude << std::endl;
+    //std::cout << "Second impulse magnitude: " << secondImpulseMagnitude << std::endl;
+    //::cout << "First impulse direction: " << firstImpulseDirection << std::endl;
+    //std::cout << "Departure true anomaly: " << departureTrueAnomaly << std::endl;
+    //std::cout << "Transfer time: " << transferTime << std::endl;
     
     // Iinitial position and velocity
     double r_init = calculateRadius(_R1, _e1, departureTrueAnomaly);
@@ -75,6 +88,9 @@ double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>
     
     double transfer_angle = std::acos((r_init_x * r_final_x + r_init_y * r_final_y)/(r_init * r_final));
     
+    // std::cout << r_init_x << ", " << r_init_y << " -> " << r_final_x << ", " << r_final_y << std::endl;
+    // std::cout << "transfer time: " << transferTime << std::endl;
+    // std::cout << "mu: " << _MU << std::endl;
     // Find the velocity vectors at departure and arrival
     std::pair<Vector3, Vector3> lambert_result = solveLambert(
         Vector3(r_init_x, r_init_y, 0),
@@ -106,6 +122,8 @@ std::pair<Vector3, Vector3> OrbitTransferObjective<T, Fun>::solveLambert(
     // Magnitudes of position vectors
     double r1_mag = r1.magnitude();
     double r2_mag = r2.magnitude();
+    
+    //std::cout << "R1: " << r1_mag << ", R2: " << r2_mag << std::endl;
     
     // transfer angle
     double cos_dnu = (r1.x * r2.x + r1.y * r2.y + r1.z * r2.z) / (r1_mag * r2_mag);
@@ -161,6 +179,10 @@ std::pair<Vector3, Vector3> OrbitTransferObjective<T, Fun>::solveLambert(
     double g = r1_mag * r2_mag * std::sin(dnu) / std::sqrt(mu * a);
     double g_dot = 1.0 - r1_mag / a * (1.0 - std::cos(dnu));
     double f_dot = -std::sqrt(mu / a) * std::sin(dnu) / (r1_mag * r2_mag) * r2_mag;
+    //std::cout << "F: " << f << std::endl;
+    //std::cout << "G: " << g << std::endl;
+    //std::cout << "G_dot: " << g_dot << std::endl;
+    //std::cout << "F_dot: " << f_dot << std::endl;
     
     //  velocity vectors
     Vector3 v1, v2;

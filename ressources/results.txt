@@ -2,24 +2,24 @@
 # Case 1: Transfer between coplanar circular orbits
 
 [InitialOrbit]
-radius = 2.61486
+radius = 1.09749
 inclination = 0
 raan = 0.0
 eccentricity = 0
 arg_periapsis = 0.0
 
 [TargetOrbit]
-radius = 6.61068
+radius = 1.56785
 inclination = 0
 raan = 0.0
 eccentricity = 0
 arg_periapsis = 0.0
 
 [OptimalTransfer]
-initial_true_anomaly = 6.28319
-final_true_anomaly = 1.14776
-transfer_time = 0.0718772
+initial_true_anomaly = 1.48872
+final_true_anomaly = 5.21806
+transfer_time = 0.0117571
 is_three_impulse = false
 
 [DeltaV]
-magnitude = 5,0
+magnitude = 4.40765,3.96579

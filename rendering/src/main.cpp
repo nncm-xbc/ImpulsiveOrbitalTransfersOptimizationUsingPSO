@@ -14,7 +14,6 @@
 #include "Camera.hpp"
 #include "TransferModel.hpp"
 #include "ImpulseModel.hpp"
-#include "ImpulseModel.hpp"
 #include "Animation.hpp"
 #include "Results.hpp"
 
@@ -356,7 +355,7 @@ int main(int argc, char* argv[]) {
         transferModel.render(transferShader, viewProjection, glm::vec3(1.0f, 1.0f, 0.0f), animation.getProgress());
 
         // Render impulse arrows
-        impulseModel.render(impulseShader, viewProjection, animation.getProgress());
+        //impulseModel.render(impulseShader, viewProjection, animation.getProgress());
 
         camera.displayCameraPosition(camera);
         //camera.renderCoordinateAxes(axesShader, viewProjection, axesVAO);

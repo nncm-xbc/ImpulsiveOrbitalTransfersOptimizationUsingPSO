@@ -23,12 +23,11 @@ int main()
     double socialWeight = 2.0;
 
     OrbitTransferObjective<double, std::function<double(double*)>> objectiveFunction(
-        constant::R1, 
-        constant::R2, 
+        constant::R1,
+        constant::R2,
         constant::Rmax,
-        0.0, 0.0, // e1, e2 - Eccentricities
-        //28.5 * M_PI / 180.0, 0.0); // i1, i2 - Inclinations
-        0.0, 0.0); // i1, i2 - Inclinations
+        constant::E1,constant::E2, // e1, e2
+        constant::I1, constant::I2); // i1, i2 - Inclinations
 
     std::vector<double> lowerBounds(dimension);
     std::vector<double> upperBounds(dimension);

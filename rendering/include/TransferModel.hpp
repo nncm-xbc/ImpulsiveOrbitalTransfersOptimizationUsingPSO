@@ -14,18 +14,19 @@ public:
     void setTwoImpulseTransfer(double initialRadius, double initialInclination,
                                 double targetRadius, double targetInclination,
                                 double initialEccentricity, double targetEccentricity,
-                                double initialTrueAnomaly, double finalTrueAnomaly, 
+                                double initialTrueAnomaly, double finalTrueAnomaly,
                                 std::vector<double> impulseMagnitudes, std::vector<double> planeChange);
     void setThreeImpulseTransfer(double initialRadius, double initialInclination,
         double targetRadius, double targetInclination,
         double initialTrueAnomaly, double finalTrueAnomaly, double final_true_anomaly);
-    void render(const Shader& shader, const glm::mat4& view_projection, 
+    void render(const Shader& shader, const glm::mat4& view_projection,
                 const glm::vec3& color, float animation_progress = 1.0f);
 
     const std::vector<glm::vec3>& getImpulsePositions() const;
     const std::vector<glm::vec3>& getImpulseDirections() const;
     const std::vector<double>& getImpulseMagnitudes() const;
     void renderCompleteEllipse(const Shader& shader, const glm::mat4& view_projection, const glm::vec3& color);
+    glm::vec3 calculateRenderedCenter();
 
 private:
     // Transfer parameters
@@ -39,11 +40,11 @@ private:
     double final_true_anomaly_;
     float transfer_semi_major_;
     float transfer_eccentricity_;
-    
+
     // OpenGL objects
     GLuint vao_, vbo_;
     bool initialized_;
-    
+
     // Transfer points and impulse data
     std::vector<glm::vec3> transfer_points_;
     std::vector<glm::vec3> impulse_positions_;

@@ -16,10 +16,10 @@ eccentricity = 0
 arg_periapsis = 0.0
 
 [OptimalTransfer]
-initial_true_anomaly = 5.41242
-final_true_anomaly = 0.698216
-transfer_time = 0.0194603
+initial_true_anomaly = 6.28319
+final_true_anomaly = 1.14776
+transfer_time = 0.0718772
 is_three_impulse = false
 
 [DeltaV]
-magnitude = 2.83948,4.44951
+magnitude = 5,0

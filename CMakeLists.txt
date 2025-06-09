@@ -1,5 +1,26 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.24)
 project(PSO)
+
+if(APPLE)
+    # Use Homebrew's clang instead of Apple's
+    execute_process(
+        COMMAND brew --prefix llvm
+        OUTPUT_VARIABLE LLVM_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    if(LLVM_PREFIX)
+        set(CMAKE_C_COMPILER "${LLVM_PREFIX}/bin/clang")
+        set(CMAKE_CXX_COMPILER "${LLVM_PREFIX}/bin/clang++")
+
+        # Add include paths from Homebrew's llvm
+        include_directories(SYSTEM "${LLVM_PREFIX}/include/c++/v1")
+        include_directories(SYSTEM "${LLVM_PREFIX}/include")
+
+        # Add library path
+        link_directories("${LLVM_PREFIX}/lib")
+    endif()
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 option(PROF "Enable profiling" OFF)
@@ -14,13 +35,12 @@ if(OpenMP_CXX_FOUND)
     add_definitions(-DUSE_OPENMP)
 else()
     message("-- OpenMP not found. Building without OpenMP support.")
-    set(CMAKE_CXX_FLAGS "-O3")
 endif()
 
 # ------------------------------------------------------------------------------------------------------
 # Find OpenGL
 find_package(OpenGL REQUIRED)
-if(OpenMP_CXX_FOUND)
+if(OpenGL_FOUND)
     message("-- OpenGL was found")
     find_path(GLM_INCLUDE_DIR glm/glm.hpp)
     find_path(GLFW_INCLUDE_DIR GLFW/glfw3.h)
@@ -59,7 +79,7 @@ add_library(PSO_lib ${SOURCES})
 add_executable(main src/main.cpp)
 
 # Secondary rendering executable
-add_executable(rendering 
+add_executable(rendering
     rendering/src/main.cpp
     ${GLAD_SRC}  # Add the GLAD implementation
 )
@@ -74,14 +94,22 @@ target_link_libraries(main PRIVATE $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_
 include_directories(${GLM_INCLUDE_DIR})
 include_directories(${GLFW_INCLUDE_DIR})
 
-target_include_directories(rendering PRIVATE 
+target_include_directories(rendering PRIVATE
     ${CMAKE_SOURCE_DIR}/glad/include
 )
 
-target_link_libraries(rendering PRIVATE
-  ${OPENGL_LIBRARIES} 
-  glfw
-)
+target_link_libraries(rendering PRIVATE ${OPENGL_LIBRARIES})
+if(APPLE)
+  execute_process(
+    COMMAND brew --prefix
+    OUTPUT_VARIABLE HOMEBREW_PREFIX
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  find_library(GLFW_LIBRARY glfw NAMES glfw3 PATHS "${HOMEBREW_PREFIX}/lib" REQUIRED)
+  target_link_libraries(rendering PRIVATE ${GLFW_LIBRARY})
+else()
+  target_link_libraries(rendering PRIVATE glfw)
+endif()
 
 # ------------------------------------------------------------------------------------------------------
 # Testing

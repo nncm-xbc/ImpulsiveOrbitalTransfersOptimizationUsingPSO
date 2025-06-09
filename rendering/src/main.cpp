@@ -103,6 +103,7 @@ int main(int argc, char* argv[]) {
 
     PSOOrbitTransferResult psoResult;
     bool usePSOResults = false;
+    bool show_complete_ellipse = false;
 
     if (argc > 1) {
         usePSOResults = loadPSOResultsFromFile(argv[1], psoResult);
@@ -112,6 +113,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Load shaders
+    Shader transferOrbitShader;
     Shader orbitShader;
     Shader transferShader;
     Shader axesShader;
@@ -119,7 +121,8 @@ int main(int argc, char* argv[]) {
 
     if (!orbitShader.loadFromFiles("../shaders/orbit.vert", "../shaders/orbit.frag") ||
         !transferShader.loadFromFiles("../shaders/transfer.vert", "../shaders/transfer.frag") ||
-        !impulseShader.loadFromFiles("../shaders/impulse.vert", "../shaders/impulse.frag")
+        !impulseShader.loadFromFiles("../shaders/impulse.vert", "../shaders/impulse.frag") ||
+        !transferOrbitShader.loadFromFiles("../shaders/orbit_transfer.vert", "../shaders/orbit_transfer.frag")
     ) {
         std::cerr << "Failed to load shaders" << std::endl;
         return -1;
@@ -259,6 +262,8 @@ int main(int argc, char* argv[]) {
     << "  Space: Play/pause animation\n"
     << "  R: Reset animation\n"
     << "  +/-: Adjust animation speed\n"
+    << "  L: Toggle animation loop\n"
+    << "  T: Toggle transfer ellipse rendering\n"
     << "  Esc: Exit\n";
 
     float animation_speed = 1.0f;
@@ -276,18 +281,15 @@ int main(int argc, char* argv[]) {
             glfwSetWindowShouldClose(window, true);
 
         // Animation controls
+        static bool space_pressed = false;
         if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            static bool space_pressed = false;
             if (!space_pressed) {
                 space_pressed = true;
-                if (animation.isPlaying())
-                    animation.pause();
-                else
-                    animation.start();
+                animation.togglePlay();  // Use the new method
+                std::cout << "Animation " << (animation.isPlaying() ? "playing" : "paused") << std::endl;
             }
-        }
-        else {
-            static bool space_pressed = false;
+        } else {
+            space_pressed = false;
         }
 
         if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
@@ -303,6 +305,29 @@ int main(int argc, char* argv[]) {
             animation_speed = std::max(0.1f, animation_speed - 0.1f);
             animation.setSpeed(animation_speed);
             std::cout << "Animation speed: " << animation_speed << std::endl;
+        }
+
+        static bool t_pressed = false;
+        if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
+            if (!t_pressed) {
+                t_pressed = true;
+                show_complete_ellipse = !show_complete_ellipse;
+                std::cout << "Complete ellipse " << (show_complete_ellipse ? "shown" : "hidden") << std::endl;
+            }
+        }
+        else {
+            t_pressed = false;
+        }
+
+        static bool l_pressed = false;
+        if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS) {
+            if (!l_pressed) {
+                l_pressed = true;
+                animation.toggleLooping();
+                std::cout << "Animation looping: " << (animation.isLooping() ? "ON" : "OFF") << std::endl;
+            }
+        } else {
+            l_pressed = false;
         }
 
         // Update animation
@@ -322,10 +347,13 @@ int main(int argc, char* argv[]) {
         initialOrbit.render(orbitShader, viewProjection, glm::vec3(0.2f, 0.6f, 1.0f)); // Blue for initial
         targetOrbit.render(orbitShader, viewProjection, glm::vec3(1.0f, 0.3f, 0.3f));  // Red for target
 
-        transferModel.renderCompleteEllipse(orbitShader, viewProjection, glm::vec3(1.0f, 1.0f, 0.3f));
+        // Render full transfer orbit
+        if (show_complete_ellipse) {
+            transferModel.renderCompleteEllipse(orbitShader, viewProjection, glm::vec3(0.7f, 0.7f, 0.2f));
+        }
 
-        // Render transfer trajectory with animation
-        transferModel.render(transferShader, viewProjection, glm::vec3(1.0f, 1.0f, 0.5f), animation.getProgress());
+        // Render transfer with animation
+        transferModel.render(transferShader, viewProjection, glm::vec3(1.0f, 1.0f, 0.0f), animation.getProgress());
 
         // Render impulse arrows
         impulseModel.render(impulseShader, viewProjection, animation.getProgress());

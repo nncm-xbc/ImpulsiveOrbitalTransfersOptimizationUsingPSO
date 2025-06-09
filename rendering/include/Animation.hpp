@@ -11,6 +11,7 @@ public:
     void reset();
     void setSpeed(float speed);
     void setDuration(float duration);
+    void togglePlay();
 
     void update(float delta_time);
 
@@ -20,11 +21,16 @@ public:
     bool isPlaying() const;
     bool isFinished() const;
 
+    void setLooping(bool looping);
+    bool isLooping() const;
+    void toggleLooping();
+
 private:
     float current_time_;
     float duration_;
     float speed_;
     bool playing_;
+    bool loop_;
 };
 
 #endif // ANIMATION_HPP

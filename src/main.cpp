@@ -8,7 +8,7 @@
 int main()
 {
     // Define problem parameters
-    size_t numParticles = 1000;
+    size_t numParticles = 100;
     size_t dimension = 6;
         // x[0]: departure true anomaly (0 to 2π)
         // x[1]: arrival true anomaly (0 to 2π)
@@ -40,10 +40,10 @@ int main()
     upperBounds[1] = 2*M_PI;
     // Impulse magnitude bounds 1
     lowerBounds[2] = 0.0;
-    upperBounds[2] = 5.0;
+    upperBounds[2] = 10.0;
     // Impulse magnitude bounds 2
     lowerBounds[3] = 0.0;
-    upperBounds[3] = 5.0;
+    upperBounds[3] = 10.0;
     // Impulse direction bounds
     lowerBounds[4] = -M_PI;
     upperBounds[4] = M_PI;

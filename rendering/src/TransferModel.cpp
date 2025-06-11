@@ -200,11 +200,10 @@ void TransferModel::generateTransferTrajectory() {
 
     // Normal to transfer orbit plane
     glm::vec3 normal;
-    if (h_transfer_mag > 1e-6f) {
-        normal = h_transfer / h_transfer_mag;
-    } else {
-        // Coplanar case --> default normal direction
+    if (initial_inclination_ < 1e-6f && target_inclination_ < 1e-6f) {
         normal = glm::vec3(0.0f, 0.0f, 1.0f);
+    } else {
+        normal = h_transfer / h_transfer_mag;
     }
     std::cout << "Transfer orbit normal: " << normal.x << ", " << normal.y << ", " << normal.z << std::endl;
 
@@ -226,25 +225,20 @@ void TransferModel::generateTransferTrajectory() {
     std::cout << "Transfer semi-latus rectum: " << p << std::endl;
 
     glm::vec3 periapsis_dir;
-    glm::vec3 perpendicular;
+    if (initial_radius_ < target_radius_) {
+        periapsis_dir = r0_hat;
+    } else {
+        periapsis_dir = -r0_hat;
+    }
 
+    glm::vec3 perpendicular;
     if (initial_inclination_ < 1e-6f && initial_eccentricity_ < 1e-6f &&
         target_inclination_ < 1e-6f && target_eccentricity_ < 1e-6f)
     {
-        if (initial_radius_ < target_radius_) {
-            // Initial orbit is inner orbit, periapsis at departure
-            periapsis_dir = r0_hat;
-            // Perpendicular is 90° counterclockwise from periapsis in the orbital plane
-            perpendicular = glm::vec3(-periapsis_dir.y, periapsis_dir.x, 0.0f);
-        } else {
-            // Target orbit is inner orbit, periapsis 180° from departure
-            periapsis_dir = -r0_hat;
-            // Perpendicular is 90° counterclockwise from periapsis in the orbital plane
-            perpendicular = glm::vec3(-periapsis_dir.y, periapsis_dir.x, 0.0f);
-        }
-        perpendicular = glm::normalize(perpendicular);
+        perpendicular = glm::vec3(-periapsis_dir.y, periapsis_dir.x, 0.0f);
     } else {
-        // For non-circular/non-coplanar transfers, calculate periapsis from eccentricity vector
+        // non-circular/non-coplanar transfers
+        glm::vec3 h_transfer_normalized = glm::normalize(h_transfer);
         glm::vec3 cross_product = glm::cross(v0_plus, h_transfer);
         float cross_length = glm::length(cross_product);
         glm::vec3 e_vec;
@@ -260,26 +254,23 @@ void TransferModel::generateTransferTrajectory() {
         glm::vec3 departure_point = r0;
         glm::vec3 arrival_point = rf;
 
-        // Calculate periapsis direction for a transfer orbit that passes through both points
         float distance_between = glm::length(arrival_point - departure_point);
         float sum_of_radii = glm::length(departure_point) + glm::length(arrival_point);
 
-        // Semi-major axis calculation
+        // Semi-major axis
         float transfer_semi_major = (glm::length(departure_point) + glm::length(arrival_point)) / 2.0f;
 
-        // Eccentricity calculation for an orbit that passes through both points
+        // Eccentricity for an orbit that passes through both points
         float transfer_eccentricity = distance_between / sum_of_radii;
 
-        // For Hohmann transfer, periapsis should be aligned with the smaller orbit radius
-        if (glm::length(departure_point) < glm::length(arrival_point)) {
-            periapsis_dir = glm::normalize(departure_point);
-        } else {
-            periapsis_dir = glm::normalize(arrival_point);
+        float e_mag = glm::length(e_vec);
+        if (e_mag > 1e-6f) {
+            periapsis_dir = glm::normalize(e_vec);
         }
 
-        // Perpendicular vector in the transfer plane
-        perpendicular = glm::normalize(glm::cross(normal, periapsis_dir));
+        perpendicular = glm::normalize(glm::cross(h_transfer_normalized, periapsis_dir));
     }
+    perpendicular = glm::normalize(perpendicular);
 
     float dot = glm::dot(perpendicular, periapsis_dir);
     if (std::abs(dot) > 1e-6f) {
@@ -292,6 +283,7 @@ void TransferModel::generateTransferTrajectory() {
 
     // Generate points along the transfer ellipse
     int resolution = 500;
+    glm::vec3 pos;
 
     for (int i = 0; i <= resolution; ++i) {
 
@@ -300,8 +292,23 @@ void TransferModel::generateTransferTrajectory() {
 
         float r_cos = r * cos(true_anomaly);
         float r_sin = r * sin(true_anomaly);
-        glm::vec3 pos = r_cos * periapsis_dir + r_sin * perpendicular;
-                            
+
+        if (initial_inclination_ < 1e-6f && target_inclination_ < 1e-6f) {
+            // coplanar
+            pos = glm::vec3(
+                    periapsis_dir.x * r_cos + perpendicular.x * r_sin,
+                    0.0f,
+                    periapsis_dir.y * r_cos + perpendicular.y * r_sin); // force z = 0
+        } else {
+            // non-coplanar
+            glm::vec3 computational_pos = periapsis_dir * r_cos + perpendicular * r_sin;
+
+            // y and z are swapped for OpenGL rendering
+            pos = glm::vec3(
+                computational_pos.x,
+                computational_pos.z,
+                computational_pos.y
+            );        }
 
         // Scale for visualization
         pos *= 1000.0f;
@@ -321,7 +328,11 @@ void TransferModel::generateTransferTrajectory() {
 
             float r_cos = r * cos(true_anomaly);
             float r_sin = r * sin(true_anomaly);
-            glm::vec3 pos = periapsis_dir * r_cos + perpendicular * r_sin;
+
+            pos = glm::vec3(
+                    periapsis_dir.x * r_cos + perpendicular.x * r_sin,
+                    0.0f,
+                    periapsis_dir.y * r_cos + perpendicular.y * r_sin); // force z = 0
 
             // Scale for visualization
             pos *= 1000.0f;
@@ -341,8 +352,15 @@ void TransferModel::generateTransferTrajectory() {
 
             float r_cos = r * cos(true_anomaly);
             float r_sin = r * sin(true_anomaly);
-            glm::vec3 pos = periapsis_dir * r_cos + perpendicular * r_sin;
 
+            glm::vec3 computational_pos = periapsis_dir * r_cos + perpendicular * r_sin;
+
+            // y and z are swapped for OpenGL rendering
+            pos = glm::vec3(
+                computational_pos.x,
+                computational_pos.z,
+                computational_pos.y
+            );
             // Scale for visualization
             pos *= 1000.0f;
 
@@ -406,7 +424,7 @@ void TransferModel::renderCompleteEllipse(const Shader& shader, const glm::mat4&
     shader.setVec3("color", color);
 
     glm::vec3 center = calculateRenderedCenter();
-    std::cout << "Rendered transfer orbit center: " << center.x << ", " << center.y << ", " << center.z << std::endl;
+    //std::cout << "Rendered transfer orbit center: " << center.x << ", " << center.y << ", " << center.z << std::endl;
 
     glBindVertexArray(ellipseVAO);
     glDrawArrays(GL_LINE_STRIP, 0, complete_ellipse_points_.size());

@@ -298,8 +298,10 @@ void TransferModel::generateTransferTrajectory() {
         float true_anomaly = 2.0f * M_PI * i / resolution;
         float r = p / (1.0f + transfer_eccentricity_ * cos(true_anomaly));
 
-        glm::vec3 pos = r * (cos(true_anomaly) * periapsis_dir +
-                             sin(true_anomaly) * perpendicular);
+        float r_cos = r * cos(true_anomaly);
+        float r_sin = r * sin(true_anomaly);
+        glm::vec3 pos = r_cos * periapsis_dir + r_sin * perpendicular;
+                            
 
         // Scale for visualization
         pos *= 1000.0f;

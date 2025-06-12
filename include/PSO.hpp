@@ -30,5 +30,4 @@ class PSO
 
         void updateWC(std::vector<T> GBPos_previous, size_t iter);
 };
-
 #endif

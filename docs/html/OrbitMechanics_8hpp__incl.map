@@ -1,0 +1,9 @@
+<map id="/Users/simonhgt/Documents/Docker/ImpulsiveOrbitalTransfersOptimizationUsingPSO/include/core/OrbitMechanics.hpp" name="/Users/simonhgt/Documents/Docker/ImpulsiveOrbitalTransfersOptimizationUsingPSO/include/core/OrbitMechanics.hpp">
+<area shape="rect" id="Node000001" title="Core orbital mechanics calculations and utilities." alt="" coords="41,5,263,75"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,123,99,148"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="118,77,76,115,73,111,114,73"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="123,123,181,148"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="155,75,155,109,149,109,149,75"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="205,123,259,148"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="183,73,215,110,211,114,179,77"/>
+</map>

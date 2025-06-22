@@ -69,7 +69,6 @@ void OrbitModel::render(const Shader& shader, const glm::mat4& view_projection, 
     if (!initialized_ || orbit_points_.empty()) return;
 
     glm::vec3 center = calculateRenderedCenter();
-    //std::cout << "Rendered orbit center: " << center.x << ", " << center.y << ", " << center.z << std::endl;
 
     shader.use();
     shader.setMat4("viewProjection", view_projection);
@@ -137,12 +136,6 @@ void OrbitModel::generateOrbitPoints(int resolution) {
         glm::vec3 pos_physics = R * pos_orbital;
         physics_points.push_back(pos_physics);
 
-        // Debug
-        if (i == 0 || i == resolution/4 || i == resolution/2 || i == 3*resolution/4) {
-            std::cout << "Orbit point at nu=" << true_anomaly * 180/M_PI
-                      << "°: " << pos_physics.x << ", " << pos_physics.y
-                      << ", " << pos_physics.z << std::endl;
-        }
     }
 
     orbit_points_ = CoordinateSystem::trajectoryToVisualization(physics_points);
@@ -153,12 +146,6 @@ void OrbitModel::generateOrbitPoints(int resolution) {
             -cos(raan_) * sin(inclination_),
             cos(inclination_)
         );
-
-        if (!CoordinateSystem::verifyOrbitalPlane(physics_points, expected_normal, 0.01f)) {
-            std::cerr << "WARNING: Orbit not in expected plane!" << std::endl;
-            std::cerr << "  Inclination: " << inclination_ * 180/M_PI << "°" << std::endl;
-            std::cerr << "  RAAN: " << raan_ * 180/M_PI << "°" << std::endl;
-        }
     }
 }
 

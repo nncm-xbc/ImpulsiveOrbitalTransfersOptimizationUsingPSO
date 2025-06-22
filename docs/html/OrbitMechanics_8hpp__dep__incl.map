@@ -1,0 +1,16 @@
+<map id="/Users/simonhgt/Documents/Docker/ImpulsiveOrbitalTransfersOptimizationUsingPSO/include/core/OrbitMechanics.hpp" name="/Users/simonhgt/Documents/Docker/ImpulsiveOrbitalTransfersOptimizationUsingPSO/include/core/OrbitMechanics.hpp">
+<area shape="rect" id="Node000001" title="Core orbital mechanics calculations and utilities." alt="" coords="411,5,632,75"/>
+<area shape="rect" id="Node000002" href="$LambertSolver_8hpp.html" title="Lambert&#39;s problem solver for orbital trajectory determination." alt="" coords="103,123,324,192"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="419,82,304,125,302,120,418,77"/>
+<area shape="rect" id="Node000004" href="$OrbitProblem_8cpp.html" title=" " alt="" coords="251,240,472,309"/>
+<area shape="poly" id="edge6_Node000001_Node000004" title=" " alt="" coords="431,84,408,102,389,124,375,152,367,183,362,240,357,240,361,182,370,150,384,121,404,98,428,80"/>
+<area shape="rect" id="Node000005" href="$render__main_8cpp.html" title=" " alt="" coords="399,123,644,192"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="524,89,524,122,519,122,519,89"/>
+<area shape="rect" id="Node000006" href="$OrbitMechanics_8cpp.html" title=" " alt="" coords="668,123,889,192"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="610,78,705,120,702,125,608,83"/>
+<area shape="rect" id="Node000007" href="$TransferModel_8cpp.html" title=" " alt="" coords="914,123,1169,192"/>
+<area shape="poly" id="edge7_Node000001_Node000007" title=" " alt="" coords="646,64,902,120,915,123,913,128,901,125,645,70"/>
+<area shape="rect" id="Node000003" href="$LambertSolver_8cpp.html" title=" " alt="" coords="5,240,227,309"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="178,205,147,242,142,238,174,201"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="269,198,319,238,316,242,266,203"/>
+</map>

@@ -3,6 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 
 #include "core/Constants.hpp"
 #include "core/OrbitMechanics.hpp"
@@ -11,18 +12,12 @@
 #include "visualization/OrbitModel.hpp"
 #include "visualization/TransferModel.hpp"
 
-TransferModel::TransferModel() : vao_(0), vbo_(0), initialized_(false) {corrected_vao_ = 0;
-corrected_vbo_ = 0;
-has_corrected_transfer_ = false;}
+TransferModel::TransferModel() : vao_(0), vbo_(0), initialized_(false) {}
 
 TransferModel::~TransferModel() {
     if (initialized_) {
         glDeleteVertexArrays(1, &vao_);
         glDeleteBuffers(1, &vbo_);
-    }
-    if (corrected_vao_ != 0) {
-        glDeleteVertexArrays(1, &corrected_vao_);
-        glDeleteBuffers(1, &corrected_vbo_);
     }
 }
 
@@ -54,7 +49,6 @@ void TransferModel::setTwoImpulseTransfer(double initialRadius, double initialIn
     generateTransferTrajectory();
     updateBuffers();
     debugTargetPosition();
-    correctTransferToActualIntersection();
 
     glm::vec3 expected_target(1.5, 0, 0);  // What we expect
     glm::vec3 actual_target = Physics::OrbitMechanics::calculateOrbitPosition(
@@ -99,8 +93,8 @@ void TransferModel::generateTransferTrajectory() {
     glm::vec3 rf = Physics::OrbitMechanics::calculateOrbitPosition(
         target_radius_, target_inclination_, final_true_anomaly_);
 
-    CoordinateSystem::debugTransformation("Initial position", r0);
-    CoordinateSystem::debugTransformation("Target position", rf);
+    printPositionVerification(r0, glm::vec3(1.0f, 0.0f, 0.0f), "Initial Position");
+    printPositionVerification(rf, glm::vec3(1.5f, 0.0f, 0.0f), "Target Position");
 
     float r0_mag = glm::length(r0);
     float rf_mag = glm::length(rf);
@@ -113,6 +107,7 @@ void TransferModel::generateTransferTrajectory() {
 
     // Check if transfer is coplanar
     bool is_coplanar = (initial_inclination_ < 1e-6f && target_inclination_ < 1e-6f);
+    printTransferGenerationHeader(is_coplanar);
 
     // Visualization parameters
     const int resolution = 500;
@@ -122,8 +117,6 @@ void TransferModel::generateTransferTrajectory() {
     // COPLANAR CASE
     // ============================================
     if (is_coplanar) {
-        std::cout << "COPLANAR CIRCULAR TRANSFER" << std::endl;
-
         // Local coordinate system at departure point
         glm::vec3 normal_dir = glm::vec3(0.0f, 0.0f, 1.0f);  // z-axis for coplanar
         glm::vec3 tangential_dir = glm::normalize(glm::cross(normal_dir, r0_hat));
@@ -209,19 +202,12 @@ void TransferModel::generateTransferTrajectory() {
             physics_transfer_points.push_back(pos);
         }
         transfer_points_ = CoordinateSystem::trajectoryToVisualization(physics_transfer_points);
-
-
-        // Debug output for coplanar case
-        std::cout << "Transfer orbit: a = " << transfer_semi_major_
-                  << ", e = " << transfer_eccentricity_ << std::endl;
     }
 
     // ============================================
     // NON-COPLANAR CASE
     // ============================================
     else {
-        std::cout << "NON-COPLANAR CIRCULAR TRANSFER" << std::endl;
-
         // Angular momentum unit vectors for initial and target orbits
         glm::vec3 h0_hat(0.0f, 0.0f, 1.0f);  // Initial orbit normal
         if (initial_inclination_ != 0.0f) {
@@ -373,7 +359,7 @@ void TransferModel::generateTransferTrajectory() {
         // Verify the orbit is in the correct plane
         glm::vec3 expected_normal = glm::normalize(h_transfer);
         if (!CoordinateSystem::verifyOrbitalPlane(physics_ellipse_points, expected_normal)) {
-            std::cerr << "WARNING: Transfer orbit not in expected plane!" << std::endl;
+            std::cerr << "\n WARNING: Transfer orbit not in expected plane!" << std::endl;
         }
 
         // Convert all points to visualization coordinates at once
@@ -407,53 +393,13 @@ void TransferModel::generateTransferTrajectory() {
                 glm::vec3 expected = (i == 0) ? r0 : rf;
                 float dist = glm::length(pos_physics - expected);
                 std::cout << "Point " << i << " distance to expected: " << dist << std::endl;
-                CoordinateSystem::debugTransformation("Transfer point " + std::to_string(i), pos_physics);
             }
         }
 
         transfer_points_ = CoordinateSystem::trajectoryToVisualization(physics_transfer_points);
-
-        // Debug
-        std::cout << "Transfer orbit: a = " << transfer_semi_major_
-                  << ", e = " << transfer_eccentricity_
-                  << ", i = " << transfer_inclination * 180.0f / M_PI << "°"
-                  << ", Ω = " << transfer_raan * 180.0f / M_PI << "°"
-                  << ", ω = " << transfer_arg_periapsis * 180.0f / M_PI << "°" << std::endl;
-
-        std::cout << "Target projected onto transfer plane:" << std::endl;
-        std::cout << "  Out-of-plane component: " << glm::dot(rf, h_transfer_hat) << std::endl;
-        std::cout << "  Projected radius: " << glm::length(rf_projected) << std::endl;
-
-        // Verify intersection
-        float r_at_nuf = p / (1.0f + transfer_eccentricity_ * cos(nuf));
-        std::cout << "  Radius at nuf: " << r_at_nuf << std::endl;
-        std::cout << "  Match? " << (std::abs(r_at_nuf - glm::length(rf_projected)) < 0.01f) << std::endl;
-
-        // Debug output
-        std::cout << "\nTrue anomaly calculation (fixed):" << std::endl;
-        std::cout << "  r0 magnitude in plane: " << r0_mag_in_plane << std::endl;
-        std::cout << "  rf projected magnitude: " << rf_mag_projected << std::endl;
-        std::cout << "  cos(nu0): " << cos_nu0 << std::endl;
-        std::cout << "  cos(nuf): " << cos_nuf << std::endl;
-        std::cout << "  nu0: " << nu0 * 180/M_PI << " degrees" << std::endl;
-        std::cout << "  nuf option 1: " << nuf_option1 * 180/M_PI << " degrees" << std::endl;
-        std::cout << "  nuf option 2: " << nuf_option2 * 180/M_PI << " degrees" << std::endl;
-        std::cout << "  nuf selected: " << nuf * 180/M_PI << " degrees" << std::endl;
-        std::cout << "  Transfer angle: " << (nuf - nu0) * 180/M_PI << " degrees" << std::endl;
-
-        // Verify
-        float r_check_nu0 = p / (1.0f + transfer_eccentricity_ * cos(nu0));
-        float r_check_nuf = p / (1.0f + transfer_eccentricity_ * cos(nuf));
-        std::cout << "  Radius at nu0: " << r_check_nu0 << " (expected: " << r0_mag_in_plane << ")" << std::endl;
-        std::cout << "  Radius at nuf: " << r_check_nuf << " (expected: " << rf_mag_projected << ")" << std::endl;
     }
 
-    // ============================================
-    // DEBUG
-    // ============================================
-    std::cout << "\nTransfer generation complete:" << std::endl;
-    std::cout << "  Transfer points: " << transfer_points_.size() << std::endl;
-    std::cout << "  Complete ellipse points: " << complete_ellipse_points_.size() << std::endl;
+    printTransferCompletion(transfer_points_.size(), complete_ellipse_points_.size());
 }
 
 void TransferModel::render(const Shader& shader, const glm::mat4& view_projection,
@@ -556,253 +502,88 @@ void TransferModel::updateBuffers() {
 }
 
 void TransferModel::debugTargetPosition() {
-    std::cout << "\n=== TARGET POSITION DEBUG ===" << std::endl;
+    std::cout << "\n╔══════════════════════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║                        TARGET POSITION DEBUG                         ║" << std::endl;
+    std::cout << "╚══════════════════════════════════════════════════════════════════════╝" << std::endl;
 
-    // From your PSO results
     double target_radius = 1.5;
     double target_inclination = 0.0;
-    double final_true_anomaly = M_PI;  // This is what PSO gives (should be 180°)
+    double final_true_anomaly = M_PI;
 
-    std::cout << "Target orbit parameters:" << std::endl;
-    std::cout << "  Radius: " << target_radius << std::endl;
-    std::cout << "  Inclination: " << target_inclination * 180/M_PI << "°" << std::endl;
-    std::cout << "  True anomaly: " << final_true_anomaly * 180/M_PI << "°" << std::endl;
+    std::cout << " TARGET PARAMETERS:" << std::endl;
+    std::cout << "   ├─ Radius:          " << std::fixed << std::setprecision(3) << target_radius << " DU" << std::endl;
+    std::cout << "   ├─ Inclination:     " << std::setprecision(1) << target_inclination * 180/M_PI << "°" << std::endl;
+    std::cout << "   └─ True Anomaly:    " << final_true_anomaly * 180/M_PI << "°" << std::endl;
 
-    // Calculate position using OrbitMechanics
     glm::vec3 target_pos = Physics::OrbitMechanics::calculateOrbitPosition(
         target_radius, target_inclination, final_true_anomaly);
 
-    std::cout << "Calculated target position: " << target_pos.x << ", "
-              << target_pos.y << ", " << target_pos.z << std::endl;
-    std::cout << "Expected: (1.5, 0, 0) for circular equatorial orbit at 180°" << std::endl;
+    std::cout << "\n CALCULATED POSITION:" << std::endl;
+    std::cout << "   ├─ X: " << std::setprecision(6) << target_pos.x << " DU" << std::endl;
+    std::cout << "   ├─ Y: " << target_pos.y << " DU" << std::endl;
+    std::cout << "   └─ Z: " << target_pos.z << " DU" << std::endl;
 
-    // Check if the issue is in the true anomaly
-    // For a circular equatorial orbit:
-    // - At ν = 0°: position should be (r, 0, 0)
-    // - At ν = 90°: position should be (0, r, 0)
-    // - At ν = 180°: position should be (-r, 0, 0)
-    // - At ν = 270°: position should be (0, -r, 0)
+    std::cout << "\n TRUE ANOMALY VERIFICATION:" << std::endl;
+    struct TestPoint { double nu; std::string name; };
+    std::vector<TestPoint> test_points = {
+        {0.0, "0°"}, {M_PI/2, "90°"}, {M_PI, "180°"}, {3*M_PI/2, "270°"}
+    };
 
-    std::cout << "\nChecking various true anomalies for target orbit:" << std::endl;
-    for (double nu : {0.0, M_PI/2, M_PI, 3*M_PI/2}) {
+    for (const auto& test : test_points) {
         glm::vec3 pos = Physics::OrbitMechanics::calculateOrbitPosition(
-            target_radius, target_inclination, nu);
-        std::cout << "  ν = " << nu * 180/M_PI << "°: ("
-                  << pos.x << ", " << pos.y << ", " << pos.z << ")" << std::endl;
+            target_radius, target_inclination, test.nu);
+        std::cout << "   ν = " << std::setw(4) << test.name << ": ("
+                  << std::setprecision(3) << pos.x << ", " << pos.y << ", " << pos.z << ")" << std::endl;
     }
 
-    // Now check what true anomaly would give (1.5, 0, 0)
-    // For circular equatorial orbit, this should be ν = 0°
+    // Determine correct true anomaly for (1.5, 0, 0)
     glm::vec3 expected_pos(1.5, 0, 0);
-    double nu_for_expected = atan2(expected_pos.y, expected_pos.x);
-    std::cout << "\nTrue anomaly for position (1.5, 0, 0): "
-              << nu_for_expected * 180/M_PI << "°" << std::endl;
+    double correct_nu = atan2(expected_pos.y, expected_pos.x);
 
-    // Check if OrbitMechanics gives this position at ν = 0
-    glm::vec3 check_pos = Physics::OrbitMechanics::calculateOrbitPosition(
-        target_radius, target_inclination, 0.0);
-    std::cout << "Position at ν = 0°: (" << check_pos.x << ", "
-              << check_pos.y << ", " << check_pos.z << ")" << std::endl;
+    std::cout << "\n SOLUTION:" << std::endl;
+    std::cout << "   For position (1.5, 0, 0): ν = " << std::setprecision(1)
+              << correct_nu * 180/M_PI << "°" << std::endl;
 }
 
+void TransferModel::printTransferGenerationHeader(bool is_coplanar) {
+    std::cout << "\n╔══════════════════════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║                      TRANSFER TRAJECTORY GENERATION                  ║" << std::endl;
+    std::cout << "╚══════════════════════════════════════════════════════════════════════╝" << std::endl;
 
-// ============================================
-// CORRECTIONS
-// ============================================
-
-std::vector<IntersectionPoint> TransferModel::findOrbitPlaneIntersections(
-    const glm::vec3& target_plane_normal,
-    double target_radius,
-    double tolerance) const {
-
-    std::vector<IntersectionPoint> intersections;
-
-    if (complete_ellipse_points_.empty()) {
-        std::cout << "No ellipse points to check for intersections" << std::endl;
-        return intersections;
-    }
-
-    std::cout << "\n=== FINDING ORBIT PLANE INTERSECTIONS ===" << std::endl;
-    std::cout << "Target plane normal: (" << target_plane_normal.x << ", "
-              << target_plane_normal.y << ", " << target_plane_normal.z << ")" << std::endl;
-    std::cout << "Target radius: " << target_radius << std::endl;
-
-    // Convert visualization points back to physics coordinates for analysis
-    std::vector<glm::vec3> physics_points;
-    for (const auto& vis_point : complete_ellipse_points_) {
-        physics_points.push_back(CoordinateSystem::visualizationToPhysics(vis_point));
-    }
-
-    // Check each segment of the transfer ellipse for plane crossings
-    for (size_t i = 0; i < physics_points.size(); ++i) {
-        size_t next_i = (i + 1) % physics_points.size();
-
-        glm::vec3 p1 = physics_points[i];
-        glm::vec3 p2 = physics_points[next_i];
-
-        // Calculate distance from plane for both points
-        // Distance = dot(point, normal) for plane through origin
-        double d1 = glm::dot(p1, target_plane_normal);
-        double d2 = glm::dot(p2, target_plane_normal);
-
-        // Check for sign change (plane crossing)
-        if (d1 * d2 <= 0 && std::abs(d1 - d2) > tolerance) {
-            // Linear interpolation to find exact crossing point
-
-            float t = static_cast<float>(std::abs(d1) / (std::abs(d1) + std::abs(d2)));
-            glm::vec3 intersection_pos = p1 + t * (p2 - p1);
-
-            // Calculate corresponding true anomaly
-            double true_anomaly = 2.0 * M_PI * (i + t) / physics_points.size();
-
-            // Calculate radius at intersection
-            double radius = glm::length(intersection_pos);
-
-            // Calculate distance to target radius
-            double radius_error = std::abs(radius - target_radius);
-
-            IntersectionPoint intersection;
-            intersection.position = intersection_pos;
-            intersection.true_anomaly = true_anomaly;
-            intersection.radius = radius;
-            intersection.distance_to_target = radius_error;
-            intersection.is_valid = (radius_error < 0.3); // tolerance
-
-            intersections.push_back(intersection);
-
-            std::cout << "Found intersection " << intersections.size() << ":" << std::endl;
-            std::cout << "  Position: (" << intersection_pos.x << ", "
-                      << intersection_pos.y << ", " << intersection_pos.z << ")" << std::endl;
-            std::cout << "  True anomaly: " << true_anomaly * 180/M_PI << "°" << std::endl;
-            std::cout << "  Radius: " << radius << " (target: " << target_radius << ")" << std::endl;
-            std::cout << "  Radius error: " << radius_error << std::endl;
-            std::cout << "  Valid: " << (intersection.is_valid ? "YES" : "NO") << std::endl;
-        }
-    }
-
-    // Sort intersections by distance to target radius
-    std::sort(intersections.begin(), intersections.end(),
-              [](const IntersectionPoint& a, const IntersectionPoint& b) {
-                  return a.distance_to_target < b.distance_to_target;
-              });
-
-    std::cout << "Found " << intersections.size() << " plane intersections" << std::endl;
-    if (!intersections.empty()) {
-        std::cout << "Best intersection has radius error: "
-                  << intersections[0].distance_to_target << std::endl;
-    }
-
-    return intersections;
+    std::cout << " Transfer Type: " << (is_coplanar ? "COPLANAR" : "NON-COPLANAR")
+              << " CIRCULAR TRANSFER" << std::endl;
 }
 
-void TransferModel::correctTransferToActualIntersection() {
-    // For non-coplanar transfers, find where transfer orbit actually intersects target plane
-    if (std::abs(target_inclination_) < 1e-6) {
-        // Target is equatorial (z = 0 plane)
-        glm::vec3 target_normal(0.0f, 0.0f, 1.0f);
-
-        auto intersections = findOrbitPlaneIntersections(target_normal, target_radius_);
-
-        if (!intersections.empty() && intersections[0].is_valid) {
-            std::cout << "\n=== CORRECTING TRANSFER TO ACTUAL INTERSECTION ===" << std::endl;
-
-            // Update the final true anomaly to the actual intersection
-            double corrected_final_anomaly = intersections[0].true_anomaly;
-
-            std::cout << "Original final true anomaly: " << final_true_anomaly_ * 180/M_PI << "°" << std::endl;
-            std::cout << "Corrected final true anomaly: " << corrected_final_anomaly * 180/M_PI << "°" << std::endl;
-
-            // Update internal state
-            final_true_anomaly_ = corrected_final_anomaly;
-
-            // Regenerate transfer trajectory to corrected endpoint
-            generateCorrectedTransferTrajectory();
-        } else {
-            std::cout << "WARNING: No valid intersection found! Transfer may not reach target orbit." << std::endl;
-        }
+void TransferModel::printPlaneVerification(const std::vector<glm::vec3>& points, const glm::vec3& expected_normal,
+                           const std::string& orbit_name) {
+    if (!CoordinateSystem::verifyOrbitalPlane(points, expected_normal)) {
+        std::cout << " WARNING: " << orbit_name << " orbit not in expected plane!" << std::endl;
     } else {
-        // For inclined target orbits, implement similar logic with target orbit normal
-        std::cout << "Intersection correction for inclined target orbits not yet implemented" << std::endl;
+        std::cout << orbit_name << " orbit plane verification passed" << std::endl;
     }
 }
 
-void TransferModel::generateCorrectedTransferTrajectory() {
-    // Generate complete corrected transfer ellipse points
-    std::vector<glm::vec3> physics_ellipse_points;
-
-    std::cout << "\nGenerating corrected complete transfer ellipse" << std::endl;
-
-    // Use the existing transfer orbit parameters to generate complete ellipse
-    const int resolution = 500;
-
-    // Generate complete ellipse (0 to 2π)
-    for (int i = 0; i < resolution; ++i) {
-        float true_anomaly = 2.0f * M_PI * i / resolution;
-
-        // Calculate position on transfer ellipse
-        float p = transfer_semi_major_ * (1.0f - transfer_eccentricity_ * transfer_eccentricity_);
-        float r = p / (1.0f + transfer_eccentricity_ * cos(true_anomaly));
-
-        // Position in transfer orbital plane
-        glm::vec3 pos_orbital(r * cos(true_anomaly), r * sin(true_anomaly), 0.0f);
-
-        // Transform to inertial frame (this may need adjustment based on transfer orbit orientation)
-        // For now, using simplified transformation - you may need to apply proper rotation matrix
-        physics_ellipse_points.push_back(pos_orbital);
-    }
-
-    // Convert to visualization coordinates and store in corrected_transfer_points_
-    corrected_transfer_points_ = CoordinateSystem::trajectoryToVisualization(physics_ellipse_points);
-    has_corrected_transfer_ = true;
-
-    std::cout << "Generated complete corrected ellipse with " << corrected_transfer_points_.size() << " points" << std::endl;
-
-    // Update OpenGL buffers for corrected transfer
-    updateCorrectedBuffers();
+void TransferModel::printTransferCompletion(size_t transfer_points, size_t ellipse_points) {
+    std::cout << "\n TRANSFER GENERATION SUMMARY:" << std::endl;
+    std::cout << "   ├─ Transfer Points:     " << transfer_points << std::endl;
+    std::cout << "   ├─ Complete Ellipse:    " << ellipse_points << std::endl;
+    std::cout << "   └─ Status:               COMPLETED" << std::endl;
 }
 
-void TransferModel::updateCorrectedBuffers() {
-    if (!initialized_ || corrected_transfer_points_.empty()) {
-        std::cout << "Error: Cannot update corrected buffers - not initialized or no points" << std::endl;
-        return;
+void TransferModel::printPositionVerification(const glm::vec3& calculated, const glm::vec3& expected,
+                              const std::string& point_name) {
+    float distance = glm::length(calculated - expected);
+
+    std::cout << "" << point_name << " VERIFICATION:" << std::endl;
+    std::cout << "   ├─ Expected:  (" << std::fixed << std::setprecision(3)
+              << expected.x << ", " << expected.y << ", " << expected.z << ")" << std::endl;
+    std::cout << "   ├─ Actual:    (" << calculated.x << ", " << calculated.y << ", "
+              << calculated.z << ")" << std::endl;
+    std::cout << "   └─ Distance:  " << std::setprecision(6) << distance;
+
+    if (distance < 0.01f) {
+        std::cout << " MATCH" << std::endl;
+    } else {
+        std::cout << "  MISMATCH" << std::endl;
     }
-
-    // Create buffers if they don't exist
-    if (corrected_vao_ == 0) {
-        glGenVertexArrays(1, &corrected_vao_);
-        glGenBuffers(1, &corrected_vbo_);
-    }
-
-    glBindVertexArray(corrected_vao_);
-    glBindBuffer(GL_ARRAY_BUFFER, corrected_vbo_);
-    glBufferData(GL_ARRAY_BUFFER, corrected_transfer_points_.size() * sizeof(glm::vec3),
-                corrected_transfer_points_.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
-    std::cout << "Corrected transfer buffers updated with " << corrected_transfer_points_.size() << " points" << std::endl;
-}
-
-void TransferModel::renderCorrectedTransfer(const Shader& shader, const glm::mat4& view_projection,
-                                          const glm::vec3& color) {
-    if (!has_corrected_transfer_ || corrected_transfer_points_.empty() || corrected_vao_ == 0) {
-        return; // No corrected transfer to render
-    }
-
-    shader.use();
-    shader.setMat4("viewProjection", view_projection);
-    shader.setVec3("color", color);
-
-    glBindVertexArray(corrected_vao_);
-
-    // Render the complete corrected ellipse (not animated)
-    glLineWidth(3.0f); // Make corrected transfer more visible
-    glDrawArrays(GL_LINE_LOOP, 0, static_cast<GLsizei>(corrected_transfer_points_.size()));
-    glLineWidth(1.0f);
-
-    glBindVertexArray(0);
 }

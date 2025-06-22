@@ -1,0 +1,9 @@
+<map id="/Users/simonhgt/Documents/Docker/ImpulsiveOrbitalTransfersOptimizationUsingPSO/include/optimization/Logger.hpp" name="/Users/simonhgt/Documents/Docker/ImpulsiveOrbitalTransfersOptimizationUsingPSO/include/optimization/Logger.hpp">
+<area shape="rect" id="Node000001" title="Thread&#45;safe logging system for PSO optimization convergence tracking." alt="" coords="15,5,236,75"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,123,72,148"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="96,77,61,114,57,111,92,73"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="96,123,155,148"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="128,75,128,109,123,109,123,75"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="179,123,237,148"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="157,73,191,110,187,114,153,77"/>
+</map>

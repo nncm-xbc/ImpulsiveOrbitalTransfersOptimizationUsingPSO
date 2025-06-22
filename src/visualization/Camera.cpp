@@ -128,13 +128,6 @@ void Camera::displayCameraPosition(const Camera& camera) {
     std::cout.flush();
 }
 
-float distance_;
-float azimuth_;
-float elevation_;
-glm::vec3 position_;
-glm::vec3 target_;
-glm::vec3 up_;
-
 void Camera::updatePosition() {
     float x = distance_ * cos(elevation_) * sin(azimuth_);
     float y = distance_ * sin(elevation_);

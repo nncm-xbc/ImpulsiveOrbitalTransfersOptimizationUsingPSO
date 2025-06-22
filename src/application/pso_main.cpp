@@ -16,11 +16,11 @@ int main()
         // x[3]: second impulse direction (-π/2 to π/2)
         // x[4]: First impulse direction (0 to 2π)
         // x[5]: time of flight (0 to 1)
-    size_t maxIterations = 20000;
+    size_t maxIterations = 5000;
     double tolerance = 1e-2;
     double inertiaWeight = 0.5;
     double cognitiveWeight = 2.0;
-    double socialWeight = 1.7;
+    double socialWeight = 2.0;
 
     OrbitTransferObjective<double, std::function<double(double*)>> objectiveFunction(
         constant::R1,

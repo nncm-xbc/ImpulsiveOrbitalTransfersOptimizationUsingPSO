@@ -35,61 +35,53 @@ void PSO<T, Fun>::solve()
     swarm.init();
     swarm.info();
 
-    //HohmannSolution<T> exactSolution = HohmannSolution<T>(constant::R1,constant::R2,constant::MU);
-
     Logger conv_logger("../ressources/convergence_log.csv");
 
     PSOGlobals::maxIterations = _maxIterations;
+
+    const size_t progress_interval = _maxIterations / 20; // Report every 5%
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    std::cout << "\n Progress: [";
+    for (size_t i = 0; i < 20; ++i) std::cout << " ";
+    std::cout << "] 0%" << std::flush;
 
     for (size_t iter = 0; iter < _maxIterations; ++iter)
     {
         PSOGlobals::currentIteration = iter;
 
-        //std::cout << "Iteration: " << iter << " START ----------"<< std::endl;
         std::vector<T> GBPos_previous = swarm.getGlobalBestPosition();
-        //std::cout << "Global Best Pos_previous: " << GBPos_previous[0] << std::endl;
 
 
         for (size_t i = 0; i < swarm.getNumParticles(); ++i)
         {
             auto &particle = swarm.particles[i];
-/*
-            std::cout << "PARTICLE : " << i << " START --- Position: " << particle.getPosition()[0]
-                << " Velocity: " << particle.getVelocity()[0]
-                << " PBest: " << particle.getBestPosition()[0]
-                << " GBest: " << swarm.getGlobalBestPosition()[0]
-            << std::endl;
-*/
 
             swarm.updateVelocity(particle);
             swarm.updatePosition(particle);
             swarm.updatePBestPos(particle);
-/*
-            std::cout << "PARTICLE : " << i << " END --- Position: " << particle.getPosition()[0]
-                << " Velocity: " << particle.getVelocity()[0]
-                << " PBest: " << particle.getBestPosition()[0]
-                << " GBest: " << swarm.getGlobalBestPosition()[0]
-            << std::endl;
-*/
-        }
+     }
         swarm.updateGBestPos();
         updateWC(GBPos_previous, iter);
 
-/*
-        T error = exactSolution.getError(swarm.getGlobalBestValue());
-        std::cout << "Error: " << error << std::endl;
+        // Progress
+         if (iter % progress_interval == 0 || iter == _maxIterations - 1) {
+             auto current_time = std::chrono::high_resolution_clock::now();
+             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time);
 
-        if (error < _tolerance)
-        {
-            std::cout << "Convergence reached !!" << std::endl;
-            break;
-        }
-*/
+             size_t progress_bars = (iter * 20) / _maxIterations;
+             std::cout << "\r Progress: [";
+             for (size_t i = 0; i < progress_bars; ++i) std::cout << "█";
+             for (size_t i = progress_bars; i < 20; ++i) std::cout << " ";
+             std::cout << "] " << std::setw(3) << (iter * 100) / _maxIterations << "% | "
+                       << "Best ΔV: " << std::fixed << std::setprecision(6) << swarm.getGlobalBestValue()
+                       << " km/s | Time: " << elapsed.count() << "s" << std::flush;
+         }
+
         if(iter%100 == 0)
         {
             conv_logger.log(iter, swarm.getGlobalBestValue(), swarm.getInertiaWeight(), swarm.getSocialWeight(), swarm.getCognitiveWeight());
         }
-        //std::cout << "Iteration: " << iter << " END ----------"<< std::endl;
     }
     conv_logger.flushBuffer();
 }
@@ -109,22 +101,50 @@ void PSO<T, Fun>::updateWC(std::vector<T> GBPos_previous, size_t iter)
 template <typename T, typename Fun>
 void PSO<T, Fun>::printResults() const
 {
-    std::cout.setf(std::ios::scientific);
-    std::cout << "\n╔═════════════════════════════════════════════════════════════════╗" << std::endl;
-    std::cout << "║           Optimization Results                                  ║" << std::endl;
-    std::cout << "╠═════════════════════════════════════════════════════════════════╣" << std::endl;
-    std::cout << "║ Best solution found:                                            ║" << std::endl;
-    for (size_t i = 0; i < swarm.getGlobalBestPosition().size(); ++i)
-    {
-        std::cout << "║ " << std::setw(63) << swarm.getGlobalBestPosition()[i] << " ║" << std::endl;
-    }
-    std::cout << "╠═════════════════════════════════════════════════════════════════╣" << std::endl;
-    std::cout << "║ Best fitness value: " << std::setw(43) << swarm.getGlobalBestValue() << " ║" << std::endl;
-    std::cout << "║ Max iterations: " << std::setw(47) << _maxIterations << " ║" << std::endl;
-    std::cout << "║ Iterations performed: " << std::setw(41) << _maxIterations << " ║" << std::endl;
-    std::cout << "╚═════════════════════════════════════════════════════════════════╝" << std::endl;
+    std::cout << std::fixed << std::setprecision(6);
 
-    std::cout << "\nTotal ΔV for transfer: " << swarm.getGlobalBestValue() << " km/s" << std::endl;
+    std::cout << "\n╔══════════════════════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║                            PSO OPTIMIZATION RESULTS                  ║" << std::endl;
+    std::cout << "╠══════════════════════════════════════════════════════════════════════╣" << std::endl;
+
+    // Get the best solution parameters
+    auto bestSolution = swarm.getGlobalBestPosition();
+
+    std::cout << "║ OPTIMAL TRANSFER PARAMETERS:                                         ║" << std::endl;
+    std::cout << "║   • Departure True Anomaly:    " << std::setw(12) << bestSolution[0] * 180.0/M_PI << "°" << std::setw(28) << " ║" << std::endl;
+    std::cout << "║   • Arrival True Anomaly:      " << std::setw(12) << bestSolution[1] * 180.0/M_PI << "°" << std::setw(28) << " ║" << std::endl;
+    std::cout << "║   • First Impulse Magnitude:   " << std::setw(12) << bestSolution[2] << " km/s" << std::setw(24) << " ║" << std::endl;
+    std::cout << "║   • Second Impulse Magnitude:  " << std::setw(12) << bestSolution[3] << " km/s" << std::setw(24) << " ║" << std::endl;
+    std::cout << "║   • Impulse Direction:         " << std::setw(12) << bestSolution[4] * 180.0/M_PI << "°" << std::setw(28) << " ║" << std::endl;
+    std::cout << "║   • Transfer Time:             " << std::setw(12) << bestSolution[5] << " TU" << std::setw(26) << " ║" << std::endl;
+
+    std::cout << "╠══════════════════════════════════════════════════════════════════════╣" << std::endl;
+
+    // Performance metrics
+    double bestDeltaV = swarm.getGlobalBestValue();
+    std::cout << "║ TRANSFER PERFORMANCE:                                                ║" << std::endl;
+    std::cout << "║   • Total ΔV Required:         " << std::setw(12) << bestDeltaV << " km/s" << std::setw(24) << " ║" << std::endl;
+    std::cout << "║   • Individual ΔV₁:            " << std::setw(12) << bestSolution[2] << " km/s" << std::setw(24) << " ║" << std::endl;
+    std::cout << "║   • Individual ΔV₂:            " << std::setw(12) << bestSolution[3] << " km/s" << std::setw(24) << " ║" << std::endl;
+    std::cout << "║   • Transfer Efficiency:       " << std::setw(12) << (bestSolution[2] + bestSolution[3])/bestDeltaV * 100 << "%" << std::setw(28) << " ║" << std::endl;
+
+    std::cout << "╠══════════════════════════════════════════════════════════════════════╣" << std::endl;
+
+    // Algorithm performance
+    std::cout << "║ ALGORITHM PERFORMANCE:                                               ║" << std::endl;
+    std::cout << "║   • Iterations Completed:      " << std::setw(12) << _maxIterations << std::setw(29) << " ║" << std::endl;
+    std::cout << "║   • Max Iterations:            " << std::setw(12) << _maxIterations << std::setw(29) << " ║" << std::endl;
+    std::cout << "║   • Convergence Status:        " << std::setw(20) << "COMPLETED" << std::setw(21) << " ║" << std::endl;
+    std::cout << "║   • Final Inertia Weight:      " << std::setw(12) << swarm.getInertiaWeight() << std::setw(29) << " ║" << std::endl;
+
+    std::cout << "╚══════════════════════════════════════════════════════════════════════╝" << std::endl;
+
+    // Summary line
+    std::cout << "\n MISSION SUMMARY: Optimal orbital transfer found with "
+              << bestDeltaV << " km/s total ΔV requirement" << std::endl;
+
+    // Reset formatting
+    std::cout << std::scientific;
 }
 
 template <typename T, typename Fun>

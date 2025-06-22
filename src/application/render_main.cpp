@@ -17,6 +17,49 @@
 #include "visualization/Animation.hpp"
 #include "visualization/Results.hpp"
 
+void printPSOVerification(const PSOOrbitTransferResult& psoResult) {
+    std::cout << "\n╔══════════════════════════════════════════════════════════════════════╗" << std::endl;
+    std::cout << "║                      PSO SOLUTION VERIFICATION                       ║" << std::endl;
+    std::cout << "╚══════════════════════════════════════════════════════════════════════╝" << std::endl;
+
+    // Calculate positions
+    glm::vec3 pso_initial_pos = Physics::OrbitMechanics::calculateOrbitPosition(
+        psoResult.initial_radius,
+        psoResult.initial_inclination,
+        psoResult.initial_true_anomaly
+    );
+
+    glm::vec3 pso_target_pos = Physics::OrbitMechanics::calculateOrbitPosition(
+        psoResult.target_radius,
+        psoResult.target_inclination,
+        psoResult.final_true_anomaly
+    );
+
+    std::cout << std::fixed << std::setprecision(3);
+    std::cout << " TRANSFER ENDPOINTS:" << std::endl;
+    std::cout << "   Initial Position:  (" << pso_initial_pos.x << ", "
+              << pso_initial_pos.y << ", " << pso_initial_pos.z << ") DU" << std::endl;
+    std::cout << "   Target Position:   (" << pso_target_pos.x << ", "
+              << pso_target_pos.y << ", " << pso_target_pos.z << ") DU" << std::endl;
+
+    std::cout << "\n TRUE ANOMALIES:" << std::endl;
+    std::cout << "   Departure:         " << std::setw(8) << psoResult.initial_true_anomaly * 180/M_PI << "°" << std::endl;
+    std::cout << "   Arrival:           " << std::setw(8) << psoResult.final_true_anomaly * 180/M_PI << "°" << std::endl;
+
+    std::cout << std::endl;
+}
+
+// Improved orbit information display
+void printOrbitInfo(const std::string& name, double radius, double inclination, double raan, double eccentricity) {
+    std::cout << name << " ORBIT:" << std::endl;
+    std::cout << "   ├─ Type:           " << (eccentricity < 1e-6 ? "Circular" : "Elliptical") << std::endl;
+    std::cout << "   ├─ Radius:         " << std::fixed << std::setprecision(3) << radius << " DU" << std::endl;
+    std::cout << "   ├─ Inclination:    " << std::setprecision(1) << inclination * 180/M_PI << "°" << std::endl;
+    std::cout << "   ├─ RAAN:           " << raan * 180/M_PI << "°" << std::endl;
+    std::cout << "   └─ Eccentricity:   " << std::setprecision(6) << eccentricity << std::endl;
+    std::cout << std::endl;
+}
+
 int main(int argc, char* argv[]) {
     // Init GLFW
     if (!glfwInit()) {
@@ -55,33 +98,10 @@ int main(int argc, char* argv[]) {
     if (argc > 1) {
         usePSOResults = loadPSOResultsFromFile(argv[1], psoResult);
         if (usePSOResults) {
-            std::cout << "Loaded PSO results from " << argv[1] << std::endl;
+            std::cout << "\n Loaded PSO results from " << argv[1] << std::endl;
+            printPSOVerification(psoResult);
         }
     }
-
-    std::cout << "\n=== PSO SOLUTION VERIFICATION ===" << std::endl;
-
-    // Calculate the actual positions from PSO parameters
-    glm::vec3 pso_initial_pos = Physics::OrbitMechanics::calculateOrbitPosition(
-        psoResult.initial_radius,
-        psoResult.initial_inclination,
-        psoResult.initial_true_anomaly
-    );
-
-    glm::vec3 pso_target_pos = Physics::OrbitMechanics::calculateOrbitPosition(
-        psoResult.target_radius,
-        psoResult.target_inclination,
-        psoResult.final_true_anomaly
-    );
-
-    std::cout << "PSO initial position: (" << pso_initial_pos.x << ", "
-              << pso_initial_pos.y << ", " << pso_initial_pos.z << ")" << std::endl;
-    std::cout << "PSO target position: (" << pso_target_pos.x << ", "
-              << pso_target_pos.y << ", " << pso_target_pos.z << ")" << std::endl;
-
-    // The transfer should connect these two points
-    std::cout << "Initial true anomaly from PSO: " << psoResult.initial_true_anomaly * 180/M_PI << "°" << std::endl;
-    std::cout << "Final true anomaly from PSO: " << psoResult.final_true_anomaly * 180/M_PI << "°" << std::endl;
 
     // Load shaders
     Shader transferOrbitShader;
@@ -114,11 +134,9 @@ int main(int argc, char* argv[]) {
 
     if (usePSOResults) {
         if (psoResult.initial_eccentricity < 1e-6) {
-            std::cout << " Circular Init Orbit " << std::endl;
-            std::cout << "Params: "<< std::endl;
-            std::cout << "Init radius:" << psoResult.initial_radius << std::endl;
-            std::cout << "Init incl: " << psoResult.initial_inclination << std::endl;
-            std::cout << "Init raan: " << psoResult.initial_raan << std::endl;
+
+            printOrbitInfo(" INITIAL", psoResult.initial_radius, psoResult.initial_inclination, psoResult.initial_raan, psoResult.initial_eccentricity);
+
             initialOrbit.setCircularOrbit(
                 psoResult.initial_radius,
                 psoResult.initial_inclination,
@@ -135,11 +153,9 @@ int main(int argc, char* argv[]) {
         }
 
         if (psoResult.target_eccentricity < 1e-6) {
-            std::cout << " Circular Target Orbit " << std::endl;
-            std::cout << "Params: "<< std::endl;
-            std::cout << "Target radius:" << psoResult.target_radius << std::endl;
-            std::cout << "Target incl: " << psoResult.target_inclination << std::endl;
-            std::cout << "Target raan: " << psoResult.target_raan << std::endl;
+
+            printOrbitInfo("TARGET", psoResult.target_radius, psoResult.target_inclination, psoResult.target_raan, psoResult.target_eccentricity);
+
             targetOrbit.setCircularOrbit(
                 psoResult.target_radius,
                 psoResult.target_inclination,
@@ -165,7 +181,6 @@ int main(int argc, char* argv[]) {
             psoResult.delta_v_magnitudes, psoResult.plane_change
         );
 
-        std::cout << "PSO final_true_anomaly: " << psoResult.final_true_anomaly * 180/M_PI << "°" << std::endl;
 
         glm::vec3 pso_target_pos = Physics::OrbitMechanics::calculateOrbitPosition(
             psoResult.target_radius,
@@ -173,13 +188,9 @@ int main(int argc, char* argv[]) {
             psoResult.final_true_anomaly
         );
 
-        std::cout << "PSO expects target at: (" << pso_target_pos.x << ", "
-                  << pso_target_pos.y << ", " << pso_target_pos.z << ")" << std::endl;
-
         if (std::abs(psoResult.target_inclination) < 1e-6) {  // Equatorial orbit
             // For position (1.5, 0, 0), we need ν = 0°
             psoResult.final_true_anomaly = 0.0;
-            std::cout << "Corrected final_true_anomaly to 0° to match expected position (1.5, 0, 0)" << std::endl;
         }
 
     } else {
@@ -223,7 +234,7 @@ int main(int argc, char* argv[]) {
         camera->zoom(yoffset);
     });
 
-    std::cout << "Controls:\n"
+    std::cout << "\n Controls:\n"
     << "  Left mouse button + drag: Rotate camera\n"
     << "  Scroll wheel: Zoom in/out\n"
     << "  Space: Play/pause animation\n"
@@ -312,8 +323,6 @@ int main(int argc, char* argv[]) {
         // Render orbits
         initialOrbit.render(orbitShader, viewProjection, glm::vec3(0.2f, 0.6f, 1.0f)); // Blue for initial
         targetOrbit.render(orbitShader, viewProjection, glm::vec3(1.0f, 0.3f, 0.3f));  // Red for target
-
-        transferModel.renderCorrectedTransfer(orbitShader, viewProjection, glm::vec3(0.0f, 1.0f, 0.0f));
 
         // Render full transfer orbit
         if (show_complete_ellipse) {

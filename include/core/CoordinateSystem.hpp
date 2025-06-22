@@ -1,10 +1,27 @@
-// CoordinateSystem.hpp - Unified coordinate system for the entire project
+/**
+ * @file CoordinateSystem.hpp
+ * @brief Unified coordinate system transformations for the entire project
+ * @author PSO Orbit Transfer Team
+ * @date 2025
+ *
+ * This file provides coordinate system transformations between physics computations
+ * and OpenGL visualization, ensuring consistency across the entire project.
+ */
+
 #ifndef COORDINATE_SYSTEM_HPP
 #define COORDINATE_SYSTEM_HPP
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+/**
+ * @namespace CoordinateSystem
+ * @brief Coordinate system transformations and utilities
+ *
+ * Handles transformations between two coordinate systems:
+ * 1. Physics System: Standard orbital mechanics right-handed system
+ * 2. Visualization System: OpenGL right-handed system for display
+ */
 namespace CoordinateSystem {
 
 // ============================================
@@ -27,7 +44,7 @@ namespace CoordinateSystem {
 // - Origin: Same as physics
 // - Units: Scaled for visibility (1000x scale factor)
 
-// Scale factor for visualization
+/** @brief Scale factor for visualization (physics units to display units) */
 constexpr float VISUAL_SCALE = 1000.0f;
 
 // ============================================
@@ -35,8 +52,12 @@ constexpr float VISUAL_SCALE = 1000.0f;
 // ============================================
 
 /**
- * Convert from physics (computational) coordinates to OpenGL visualization
- * This handles both the axis swap and scaling
+ * @brief Convert from physics (computational) coordinates to OpenGL visualization
+ * @param physics_pos Position vector in physics coordinate system
+ * @return Position vector in OpenGL coordinate system
+ *
+ * This handles both the axis swap and scaling transformation:
+ * Physics (X,Y,Z) -> OpenGL (X,Z,Y) with scaling
  */
 inline glm::vec3 physicsToVisualization(const glm::vec3& physics_pos) {
     // Apply axis transformation: Physics (X,Y,Z) -> OpenGL (X,Z,Y)
@@ -46,19 +67,25 @@ inline glm::vec3 physicsToVisualization(const glm::vec3& physics_pos) {
         physics_pos.y
     );
 
+    // Apply scale for visualization
     return opengl_pos * VISUAL_SCALE;
 }
 
 /**
- * Convert from physics (double precision) to visualization
+ * @brief Convert from physics (double precision) to visualization
+ * @param physics_pos Position vector in physics coordinate system (double precision)
+ * @return Position vector in OpenGL coordinate system (single precision)
  */
 inline glm::vec3 physicsToVisualization(const glm::dvec3& physics_pos) {
     return physicsToVisualization(glm::vec3(physics_pos));
 }
 
 /**
- * Convert from visualization back to physics coordinates
- * (Useful for debugging or picking)
+ * @brief Convert from visualization back to physics coordinates
+ * @param opengl_pos Position vector in OpenGL coordinate system
+ * @return Position vector in physics coordinate system
+ *
+ * Useful for debugging or picking operations in the visualization
  */
 inline glm::vec3 visualizationToPhysics(const glm::vec3& opengl_pos) {
     // Remove scale
@@ -73,7 +100,11 @@ inline glm::vec3 visualizationToPhysics(const glm::vec3& opengl_pos) {
 }
 
 /**
- * Transform a whole trajectory for visualization
+ * @brief Transform a whole trajectory for visualization
+ * @param physics_points Vector of position points in physics coordinates
+ * @return Vector of position points in OpenGL coordinates
+ *
+ * Efficiently transforms entire trajectories for rendering
  */
 inline std::vector<glm::vec3> trajectoryToVisualization(const std::vector<glm::vec3>& physics_points) {
     std::vector<glm::vec3> visual_points;
@@ -86,25 +117,21 @@ inline std::vector<glm::vec3> trajectoryToVisualization(const std::vector<glm::v
     return visual_points;
 }
 
-/**
- * Debug function to print coordinate transformation
- */
-inline void debugTransformation(const std::string& label, const glm::vec3& physics_pos) {
-    glm::vec3 visual_pos = physicsToVisualization(physics_pos);
-    std::cout << label << ":" << std::endl;
-    std::cout << "  Physics: (" << physics_pos.x << ", " << physics_pos.y << ", " << physics_pos.z << ")" << std::endl;
-    std::cout << "  Visual:  (" << visual_pos.x << ", " << visual_pos.y << ", " << visual_pos.z << ")" << std::endl;
-}
-
 // ============================================
 // ORBITAL PLANE TRANSFORMATIONS
 // ============================================
 
 /**
- * Create rotation matrix for orbital elements in physics coordinates
- * This is the standard orbital mechanics transformation
+ * @brief Create rotation matrix for orbital elements in physics coordinates
+ * @param raan Right ascension of ascending node (radians)
+ * @param inclination Orbital inclination (radians)
+ * @param arg_periapsis Argument of periapsis (radians)
+ * @return 3x3 rotation matrix from orbital plane to inertial frame
+ *
+ * Standard orbital mechanics transformation sequence: Ω → i → ω
  */
 inline glm::mat3 orbitalToInertialMatrix(float raan, float inclination, float arg_periapsis) {
+    // Standard orbital mechanics rotation sequence
     glm::mat3 R_raan = glm::mat3(
         cos(raan), -sin(raan), 0.0f,
         sin(raan),  cos(raan), 0.0f,
@@ -128,8 +155,13 @@ inline glm::mat3 orbitalToInertialMatrix(float raan, float inclination, float ar
 }
 
 /**
- * Verify that a set of points lie in the expected plane
- * Useful for debugging non-coplanar transfers
+ * @brief Verify that a set of points lie in the expected plane
+ * @param points Vector of points to check
+ * @param expected_normal Expected normal vector of the plane
+ * @param tolerance Tolerance for planarity check (default 1e-3)
+ * @return true if points lie in the expected plane within tolerance
+ *
+ * Useful for debugging non-coplanar transfers and validating orbital calculations
  */
 inline bool verifyOrbitalPlane(const std::vector<glm::vec3>& points,
                                const glm::vec3& expected_normal,

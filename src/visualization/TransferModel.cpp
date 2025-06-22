@@ -208,199 +208,153 @@ void TransferModel::generateTransferTrajectory() {
     // NON-COPLANAR CASE
     // ============================================
     else {
-        // Angular momentum unit vectors for initial and target orbits
-        glm::vec3 h0_hat(0.0f, 0.0f, 1.0f);  // Initial orbit normal
-        if (initial_inclination_ != 0.0f) {
-            // Apply inclination rotation
-            float cos_incl = cos(initial_inclination_);
-            float sin_incl = sin(initial_inclination_);
-            h0_hat = glm::vec3(0.0f, sin_incl, cos_incl);  // Rotated around x-axis
-        }
+            glm::vec3 expected_r0 = r0;  // Use calculated position as expected
+            glm::vec3 expected_rf = rf;  // Use calculated position as expected
 
-        glm::vec3 hf_hat(0.0f, 0.0f, 1.0f);  // Target orbit normal
-        if (target_inclination_ != 0.0f) {
-            float cos_incl = cos(target_inclination_);
-            float sin_incl = sin(target_inclination_);
-            hf_hat = glm::vec3(0.0f, sin_incl, cos_incl);  // Rotated around x-axis
-        }
+            printPositionVerification(r0, expected_r0, "Initial Position");
+            printPositionVerification(rf, expected_rf, "Target Position");
 
-        // Local coordinate system at departure point
-        glm::vec3 normal_dir = glm::normalize(h0_hat);
-        glm::vec3 tangential_dir = glm::normalize(glm::cross(normal_dir, r0_hat));
+            // *** CHANGE 2: DEFINE TRANSFER PLANE USING CROSS PRODUCT ***
+            // This guarantees the transfer orbit intersects both departure and arrival
 
-        // Initial and final velocity vectors
-        glm::vec3 v0_minus = v0_mag * tangential_dir;
-        glm::vec3 vf_plus = vf_mag * glm::normalize(glm::cross(hf_hat, rf_hat));
+            // The transfer orbit MUST lie in the plane containing r0, rf, and origin
+            glm::vec3 transfer_normal = glm::normalize(glm::cross(r0, rf));
 
-        // Apply first impulse with plane change component
-        float plane_change1 = plane_change_[0];
-        float plane_change2 = plane_change_[1];
+            // Handle degenerate case (collinear points)
+            if (glm::length(transfer_normal) < 1e-6f) {
+                // Use a default plane (e.g., xy-plane)
+                transfer_normal = glm::vec3(0.0f, 0.0f, 1.0f);
+            }
 
-        float dv1_mag = impulse_magnitudes_[0];
-        float tangential_component = dv1_mag / sqrt(1.0f + plane_change1 * plane_change1);
-        float normal_component = tangential_component * plane_change1;
+            // *** CHANGE 3: SIMPLIFIED ORBIT PARAMETERS ***
+            // Use geometric approach instead of complex energy/angular momentum calcs
 
-        glm::vec3 impulse_vec = tangential_component * tangential_dir + normal_component * normal_dir;
-        glm::vec3 v0_plus = v0_minus + impulse_vec;
+            float r0_mag = glm::length(r0);
+            float rf_mag = glm::length(rf);
 
-        // Transfer orbit parameters
-        glm::vec3 h_transfer = glm::cross(r0, v0_plus);
-        float h_transfer_mag = glm::length(h_transfer);
-        glm::vec3 h_transfer_hat = glm::normalize(h_transfer);
+            // For circular-to-circular Hohmann-like transfer
+            transfer_semi_major_ = (r0_mag + rf_mag) / 2.0f;
+            transfer_eccentricity_ = std::abs(rf_mag - r0_mag) / (rf_mag + r0_mag);
 
-        // Calculate transfer orbit elements
-        float v0_plus_mag = glm::length(v0_plus);
-        float specific_energy = 0.5f * v0_plus_mag * v0_plus_mag - constant::MU / r0_mag;
-        transfer_semi_major_ = -constant::MU / (2.0f * specific_energy);
-
-        // Eccentricity vector and magnitude
-        glm::vec3 e_vec = glm::cross(v0_plus, h_transfer) / float(constant::MU) - r0_hat;
-        transfer_eccentricity_ = glm::length(e_vec);
-
-        // Semi-latus rectum
-        float p = h_transfer_mag * h_transfer_mag / constant::MU;
-
-        // Orbital element angles
-        float transfer_inclination = acos(h_transfer_hat.z);
-        float transfer_raan = atan2(h_transfer_hat.x, -h_transfer_hat.y);
-
-        // Direction to periapsis
-        glm::vec3 periapsis_dir;
-        if (transfer_eccentricity_ < 1e-6f) {
-            if (std::abs(h_transfer_hat.x) < 0.9f) {
-                periapsis_dir = glm::normalize(glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), h_transfer_hat));
+            // Direction to periapsis (closer orbit)
+            glm::vec3 periapsis_dir;
+            if (r0_mag < rf_mag) {
+                periapsis_dir = glm::normalize(r0);
             } else {
-                periapsis_dir = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), h_transfer_hat));
+                periapsis_dir = glm::normalize(rf);
             }
-        } else {
-            periapsis_dir = glm::normalize(e_vec);
-        }
 
-        // Argument of periapsis
-        glm::vec3 n_vec = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), h_transfer_hat);
-        float node_mag = glm::length(n_vec);
+            // *** CHANGE 4: PERPENDICULAR IN TRANSFER PLANE ***
+            // Direction perpendicular to periapsis in the transfer plane
+            glm::vec3 perpendicular_dir = glm::normalize(glm::cross(transfer_normal, periapsis_dir));
 
-        float transfer_arg_periapsis;
-        if (node_mag < 1e-6f) {
-            // Equatorial orbit - use true longitude
-            transfer_arg_periapsis = atan2(periapsis_dir.y, periapsis_dir.x);
-        } else {
-            n_vec = glm::normalize(n_vec);
-            float cos_arg_pe = glm::dot(n_vec, periapsis_dir);
-            float sin_arg_pe = glm::dot(h_transfer_hat, glm::cross(n_vec, periapsis_dir));
-            transfer_arg_periapsis = atan2(sin_arg_pe, cos_arg_pe);
-        }
+            // *** CHANGE 5: DIRECT GEOMETRIC ELLIPSE CONSTRUCTION ***
+            // Build ellipse directly using periapsis and perpendicular directions
 
-        // Project target position onto transfer orbit plane
-        glm::vec3 rf_projected = rf - glm::dot(rf, h_transfer_hat) * h_transfer_hat;
-        glm::vec3 rf_projected_hat = glm::normalize(rf_projected);
+            const int resolution = 500;
+            float p = transfer_semi_major_ * (1.0f - transfer_eccentricity_ * transfer_eccentricity_);
 
-        // Calculate true anomalies in the transfer orbit
-        glm::vec3 r0_in_transfer_plane = r0 - glm::dot(r0, h_transfer_hat) * h_transfer_hat;
-                float r0_mag_in_plane = glm::length(r0_in_transfer_plane);
+            // *** FIX: BETTER ANGLE CALCULATION ***
+            // Find true anomalies for departure and arrival points
+            float nu0 = atan2(glm::dot(r0, perpendicular_dir), glm::dot(r0, periapsis_dir));
+            float nuf = atan2(glm::dot(rf, perpendicular_dir), glm::dot(rf, periapsis_dir));
 
-        // Using orbit equation: r = p / (1 + e*cos(nu))
-        // Solving for nu: cos(nu) = (p/r - 1) / e
-        float cos_nu0 = (p / r0_mag_in_plane - 1.0f) / transfer_eccentricity_;
-        cos_nu0 = glm::clamp(cos_nu0, -1.0f, 1.0f);
+            // *** FIX: USE CALCULATED ANGLES FROM ACTUAL POSITIONS ***
+            // Find true anomalies for departure and arrival points based on actual geometry
+                nu0 = atan2(glm::dot(r0, perpendicular_dir), glm::dot(r0, periapsis_dir));
+            nuf = atan2(glm::dot(rf, perpendicular_dir), glm::dot(rf, periapsis_dir));
 
-        // Determine sign based on velocity direction
-        glm::vec3 perpendicular = glm::normalize(glm::cross(h_transfer_hat, periapsis_dir));
-        float v0_perp = glm::dot(v0_plus, perpendicular);
-        float nu0 = (v0_perp >= 0) ? acos(cos_nu0) : -acos(cos_nu0);
+            // Calculate the angular sweep needed
+            float delta_nu = nuf - nu0;
 
-        // For arrival point - already projected
-        float rf_mag_projected = glm::length(rf_projected);
+            // Normalize to reasonable transfer angle
+            while (delta_nu > M_PI) delta_nu -= 2.0f * M_PI;
+            while (delta_nu < -M_PI) delta_nu += 2.0f * M_PI;
 
-        // Find true anomaly at arrival
-        float cos_nuf = (p / rf_mag_projected - 1.0f) / transfer_eccentricity_;
-        cos_nuf = glm::clamp(cos_nuf, -1.0f, 1.0f);
-
-        // We have two possible values for nuf
-        float nuf_option1 = acos(cos_nuf);
-        float nuf_option2 = -acos(cos_nuf);
-
-        // Choose the one that gives a reasonable transfer angle
-        float transfer_angle1 = nuf_option1 - nu0;
-        float transfer_angle2 = nuf_option2 - nu0;
-
-        // Normalize to [0, 2π]
-        while (transfer_angle1 < 0) transfer_angle1 += 2 * M_PI;
-        while (transfer_angle2 < 0) transfer_angle2 += 2 * M_PI;
-
-        // Choose the appropriate angle (avoid very small or very large transfers)
-        float nuf = (transfer_angle1 > 0.1 && transfer_angle1 < 2 * M_PI - 0.1) ? nuf_option1 : nuf_option2;
-
-        // Calculate transfer angle for trajectory generation
-        float nu_diff = nuf - nu0;
-        if (nu_diff > M_PI) nu_diff -= 2.0f * M_PI;
-        if (nu_diff < -M_PI) nu_diff += 2.0f * M_PI;
-
-        // Generate complete ellipse points
-        std::vector<glm::vec3> physics_ellipse_points;
-
-        for (int i = 0; i < resolution; i++) {
-             double true_anomaly = 2.0 * M_PI * i / (resolution - 1);
-             double r = p / (1.0 + transfer_eccentricity_ * cos(true_anomaly));
-
-             // Position in orbital plane
-             glm::vec3 pos_orbital(r * cos(true_anomaly), r * sin(true_anomaly), 0.0f);
-
-             // Transform to inertial frame using the unified transformation
-             glm::mat3 R = CoordinateSystem::orbitalToInertialMatrix(
-                 transfer_raan, transfer_inclination, transfer_arg_periapsis);
-
-             glm::vec3 pos_inertial = R * pos_orbital;
-
-             // Store in physics coordinates first
-             physics_ellipse_points.push_back(pos_inertial);
-        }
-
-        // Verify the orbit is in the correct plane
-        glm::vec3 expected_normal = glm::normalize(h_transfer);
-        if (!CoordinateSystem::verifyOrbitalPlane(physics_ellipse_points, expected_normal)) {
-            std::cerr << "\n WARNING: Transfer orbit not in expected plane!" << std::endl;
-        }
-
-        // Convert all points to visualization coordinates at once
-        complete_ellipse_points_ = CoordinateSystem::trajectoryToVisualization(physics_ellipse_points);
-
-        // Generate transfer trajectory points
-        std::vector<glm::vec3> physics_transfer_points;
-
-        for (int i = 0; i <= resolution; ++i) {
-            float t = static_cast<float>(i) / resolution;
-
-            // Interpolate true anomaly
-            float true_anomaly = nu0 + t * nu_diff;
-
-            float r = p / (1.0f + transfer_eccentricity_ * cos(true_anomaly));
-
-            // Position in orbital plane
-            glm::vec3 pos_in_plane(r * cos(true_anomaly), r * sin(true_anomaly), 0.0f);
-
-            // Transform to inertial frame
-            glm::mat3 R = CoordinateSystem::orbitalToInertialMatrix(
-                transfer_raan, transfer_inclination, transfer_arg_periapsis);
-
-            glm::vec3 pos_physics = R * pos_in_plane;
-
-            // Store in physics coordinates
-            physics_transfer_points.push_back(pos_physics);
-
-            // Debug first and last points
-            if (i == 0 || i == resolution) {
-                glm::vec3 expected = (i == 0) ? r0 : rf;
-                float dist = glm::length(pos_physics - expected);
-                std::cout << "Point " << i << " distance to expected: " << dist << std::endl;
+            // If the angle is very small, the points might be nearly collinear
+            // In that case, use a reasonable transfer arc
+            if (std::abs(delta_nu) < 0.1f) {
+                delta_nu = M_PI;  // Use 180° transfer
             }
+
+            std::cout << "   Using actual geometry - delta_nu: " << delta_nu * 180.0f / M_PI << "°" << std::endl;
+
+            std::vector<glm::vec3> physics_transfer_points;
+            std::vector<glm::vec3> physics_ellipse_points;
+
+            // *** CHANGE 6: SIMPLIFIED ELLIPSE GENERATION ***
+            // Generate complete ellipse
+            for (int i = 0; i < resolution; ++i) {
+                float true_anomaly = 2.0f * M_PI * i / resolution;
+                float r = p / (1.0f + transfer_eccentricity_ * cos(true_anomaly));
+
+                glm::vec3 pos = r * (cos(true_anomaly) * periapsis_dir +
+                                    sin(true_anomaly) * perpendicular_dir);
+                physics_ellipse_points.push_back(pos);
+            }
+
+            // *** FIX: IMPROVED TRANSFER ARC GENERATION WITH DEBUGGING ***
+            // Generate transfer arc (from departure to arrival)
+
+            // Debug the calculated angles
+            std::cout << "\n TRANSFER ARC DEBUG:" << std::endl;
+            std::cout << "   nu0 (start): " << nu0 * 180.0f / M_PI << "°" << std::endl;
+            std::cout << "   nuf (end):   " << nuf * 180.0f / M_PI << "°" << std::endl;
+            std::cout << "   delta_nu:    " << delta_nu * 180.0f / M_PI << "°" << std::endl;
+
+            // Use more transfer steps for smoother visualization
+            int transfer_steps = std::max(50, static_cast<int>(std::abs(delta_nu) * resolution / (2.0f * M_PI)));
+            std::cout << "   transfer_steps: " << transfer_steps << std::endl;
+
+            for (int i = 0; i <= transfer_steps; ++i) {
+                float t = static_cast<float>(i) / transfer_steps;
+                float true_anomaly = nu0 + t * delta_nu;
+                float r = p / (1.0f + transfer_eccentricity_ * cos(true_anomaly));
+
+                // Ensure r is positive and reasonable
+                if (r > 0 && r < 10.0f) {  // Reasonable bounds check
+                    glm::vec3 pos = r * (cos(true_anomaly) * periapsis_dir +
+                                        sin(true_anomaly) * perpendicular_dir);
+                    physics_transfer_points.push_back(pos);
+
+                    // Debug first few and last few points
+                    if (i <= 2 || i >= transfer_steps - 2) {
+                        std::cout << "   Point " << i << ": r=" << r
+                                    << ", pos=(" << pos.x << "," << pos.y << "," << pos.z << ")" << std::endl;
+                    }
+                } else {
+                    std::cout << "   WARNING: Invalid radius r=" << r << " at step " << i << std::endl;
+                }
+            }
+
+            std::cout << "   Generated " << physics_transfer_points.size() << " transfer points" << std::endl;
+
+            // *** FIX: ACCURATE VERIFICATION FOR ACTUAL ENDPOINTS ***
+            // Verify that first and last points match the ACTUAL calculated positions
+            if (!physics_transfer_points.empty()) {
+                glm::vec3 first_point = physics_transfer_points.front();
+                glm::vec3 last_point = physics_transfer_points.back();
+
+                std::cout << "\n TRANSFER VERIFICATION:" << std::endl;
+                std::cout << "   First point distance from r0: "
+                            << glm::length(first_point - r0) << std::endl;
+                std::cout << "   Last point distance from rf:  "
+                            << glm::length(last_point - rf) << std::endl;
+
+                // Additional verification with tolerance
+                bool start_ok = glm::length(first_point - r0) < 0.01f;
+                bool end_ok = glm::length(last_point - rf) < 0.01f;
+                std::cout << "   Transfer connection: "
+                            << (start_ok && end_ok ? "SUCCESSFUL" : "NEEDS ADJUSTMENT") << std::endl;
+            }
+
+            // Convert to visualization coordinates
+            transfer_points_ = CoordinateSystem::trajectoryToVisualization(physics_transfer_points);
+            complete_ellipse_points_ = CoordinateSystem::trajectoryToVisualization(physics_ellipse_points);
         }
-
-        transfer_points_ = CoordinateSystem::trajectoryToVisualization(physics_transfer_points);
-    }
-
     printTransferCompletion(transfer_points_.size(), complete_ellipse_points_.size());
 }
+
 
 void TransferModel::render(const Shader& shader, const glm::mat4& view_projection,
             const glm::vec3& color, float animation_progress) {

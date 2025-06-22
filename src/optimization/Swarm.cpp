@@ -1,4 +1,5 @@
 #include "optimization/Swarm.hpp"
+#include "core/Constants.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -178,9 +179,10 @@ void Swarm<T, Fun>::info() const
     std::cout << "║   • Initial Orbit:             " << std::setw(20) << "R₁ = 1.000 DU" << std::setw(23) << " ║" << std::endl;
     std::cout << "║   • Target Orbit:              " << std::setw(20) << "R₂ = 1.500 DU" << std::setw(23) << " ║" << std::endl;
     std::cout << "║   • Inclination Change:        " << std::setw(12) << std::setprecision(1)
-              << 0.497419 * 180.0/M_PI << "°" << std::setw(28) << " ║" << std::endl;
-    std::cout << "║   • Transfer Type:             " << std::setw(20) << "Non-coplanar" << std::setw(21) << " ║" << std::endl;
-
+              << std::abs(constant::I1-constant::I2) << " rad" << std::setw(25) << " ║" << std::endl;
+              std::cout << "║   • Transfer Type:             " << std::setw(20)
+                        << (constant::I1 == constant::I2 ? "Coplanar" : "Non-Coplanar")
+                        << std::setw(21) << " ║" << std::endl;
     std::cout << "╠══════════════════════════════════════════════════════════════════════╣" << std::endl;
 
     // Initial status

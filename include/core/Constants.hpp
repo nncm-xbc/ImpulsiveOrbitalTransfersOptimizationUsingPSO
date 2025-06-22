@@ -19,8 +19,8 @@ namespace constant {
     inline constexpr double E2 = 0.0;
 
     // Inclinations
-    //inline constexpr double I1 = 0.497419;
-    inline constexpr double I1 = 0.0;
+    inline constexpr double I1 = 0.497419;
+    //inline constexpr double I1 = 0.0;
     inline constexpr double I2 = 0.0;
 
     //Raan

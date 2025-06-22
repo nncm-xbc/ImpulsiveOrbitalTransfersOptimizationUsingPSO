@@ -9,8 +9,8 @@
 #include <iomanip>
 #include <sstream>
 
-#include "Shader.hpp"
-#include "Camera.hpp"
+#include "visualization/Shader.hpp"
+#include "visualization/Camera.hpp"
 
 Camera::Camera(float distance) :
     distance_(distance),

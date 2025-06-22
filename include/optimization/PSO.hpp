@@ -1,8 +1,8 @@
 #ifndef PSO_HPP
 #define PSO_HPP
 
-#include "OrbitProblem.hpp"
-#include "Swarm.hpp"
+#include "core/OrbitProblem.hpp"
+#include "optimization/Swarm.hpp"
 
 template <typename T, typename Fun>
 class PSO

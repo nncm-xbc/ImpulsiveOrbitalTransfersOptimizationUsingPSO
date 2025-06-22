@@ -1,4 +1,4 @@
-#include "Animation.hpp"
+#include "visualization/Animation.hpp"
 
 #include <cmath>
 

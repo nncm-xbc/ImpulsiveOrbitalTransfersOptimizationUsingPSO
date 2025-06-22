@@ -1,4 +1,4 @@
-#include "Logger.hpp"
+#include "optimization/Logger.hpp"
 #include <iostream>
 
 Logger::Logger(const std::string& filename): logFile(filename){

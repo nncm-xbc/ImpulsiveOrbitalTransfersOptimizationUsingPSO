@@ -1,7 +1,7 @@
 #ifndef SWARM_HPP
 #define SWARM_HPP
 
-#include "Particle.hpp"
+#include "optimization/Particle.hpp"
 #include <vector>
 
 template <typename T, typename Fun>

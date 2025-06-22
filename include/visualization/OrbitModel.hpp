@@ -3,7 +3,7 @@
 #include <vector>
 #include <cmath>
 
-#include "Shader.hpp"
+#include "visualization/Shader.hpp"
 
 class OrbitModel {
     public:

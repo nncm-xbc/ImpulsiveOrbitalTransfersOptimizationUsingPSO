@@ -9,65 +9,13 @@
 #include <iomanip>
 #include <sstream>
 
-#include "OrbitModel.hpp"
-#include "Shader.hpp"
-#include "Camera.hpp"
-#include "TransferModel.hpp"
-#include "ImpulseModel.hpp"
-#include "Animation.hpp"
-#include "Results.hpp"
-
-// class DebugLine {
-// private:
-//     GLuint vao_, vbo_;
-//     bool initialized_;
-
-// public:
-//     DebugLine() : vao_(0), vbo_(0), initialized_(false) {}
-
-//     ~DebugLine() {
-//         if (initialized_) {
-//             glDeleteVertexArrays(1, &vao_);
-//             glDeleteBuffers(1, &vbo_);
-//         }
-//     }
-
-//     void initialize() {
-//         if (initialized_) return;
-
-//         glGenVertexArrays(1, &vao_);
-//         glGenBuffers(1, &vbo_);
-
-//         glm::vec3 lineVertices[2] = {
-//             glm::vec3(0.0f, 0.0f, 0.0f),    // Origin
-//             glm::vec3(0.0f, 0.0f, 10.0f)    // Point along Z-axis
-//         };
-
-//         glBindVertexArray(vao_);
-//         glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-//         glBufferData(GL_ARRAY_BUFFER, sizeof(lineVertices), lineVertices, GL_STATIC_DRAW);
-
-//         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-//         glEnableVertexAttribArray(0);
-
-//         glBindBuffer(GL_ARRAY_BUFFER, 0);
-//         glBindVertexArray(0);
-
-//         initialized_ = true;
-//     }
-
-//     void render(const Shader& shader, const glm::mat4& viewProjection, const glm::vec3& color) {
-//         if (!initialized_) return;
-
-//         shader.use();
-//         shader.setMat4("viewProjection", viewProjection);
-//         shader.setVec3("color", color);
-
-//         glBindVertexArray(vao_);
-//         glDrawArrays(GL_LINES, 0, 2);
-//         glBindVertexArray(0);
-//     }
-// };
+#include "core/OrbitMechanics.hpp"
+#include "visualization/OrbitModel.hpp"
+#include "visualization/Shader.hpp"
+#include "visualization/Camera.hpp"
+#include "visualization/TransferModel.hpp"
+#include "visualization/Animation.hpp"
+#include "visualization/Results.hpp"
 
 int main(int argc, char* argv[]) {
     // Init GLFW
@@ -111,16 +59,38 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    std::cout << "\n=== PSO SOLUTION VERIFICATION ===" << std::endl;
+
+    // Calculate the actual positions from PSO parameters
+    glm::vec3 pso_initial_pos = Physics::OrbitMechanics::calculateOrbitPosition(
+        psoResult.initial_radius,
+        psoResult.initial_inclination,
+        psoResult.initial_true_anomaly
+    );
+
+    glm::vec3 pso_target_pos = Physics::OrbitMechanics::calculateOrbitPosition(
+        psoResult.target_radius,
+        psoResult.target_inclination,
+        psoResult.final_true_anomaly
+    );
+
+    std::cout << "PSO initial position: (" << pso_initial_pos.x << ", "
+              << pso_initial_pos.y << ", " << pso_initial_pos.z << ")" << std::endl;
+    std::cout << "PSO target position: (" << pso_target_pos.x << ", "
+              << pso_target_pos.y << ", " << pso_target_pos.z << ")" << std::endl;
+
+    // The transfer should connect these two points
+    std::cout << "Initial true anomaly from PSO: " << psoResult.initial_true_anomaly * 180/M_PI << "°" << std::endl;
+    std::cout << "Final true anomaly from PSO: " << psoResult.final_true_anomaly * 180/M_PI << "°" << std::endl;
+
     // Load shaders
     Shader transferOrbitShader;
     Shader orbitShader;
     Shader transferShader;
     Shader axesShader;
-    Shader impulseShader;
 
     if (!orbitShader.loadFromFiles("../shaders/orbit.vert", "../shaders/orbit.frag") ||
         !transferShader.loadFromFiles("../shaders/transfer.vert", "../shaders/transfer.frag") ||
-        !impulseShader.loadFromFiles("../shaders/impulse.vert", "../shaders/impulse.frag") ||
         !transferOrbitShader.loadFromFiles("../shaders/orbit_transfer.vert", "../shaders/orbit_transfer.frag")
     ) {
         std::cerr << "Failed to load shaders" << std::endl;
@@ -135,14 +105,12 @@ int main(int argc, char* argv[]) {
     OrbitModel initialOrbit;
     OrbitModel targetOrbit;
     TransferModel transferModel;
-    ImpulseVisualization impulseModel;
 
     GLuint axesVAO, axesVBO;
 
     initialOrbit.initialize();
     targetOrbit.initialize();
     transferModel.initialize();
-    impulseModel.initialize();
 
     if (usePSOResults) {
         if (psoResult.initial_eccentricity < 1e-6) {
@@ -188,23 +156,32 @@ int main(int argc, char* argv[]) {
         }
 
         // Set up transfer trajectory
-        if (psoResult.is_three_impulse) {
-            transferModel.setThreeImpulseTransfer(
-                psoResult.initial_radius, psoResult.initial_inclination,
-                psoResult.target_radius, psoResult.target_inclination,
-                psoResult.initial_true_anomaly, psoResult.intermediate_radius,
-                psoResult.final_true_anomaly
-            );
-        } else {
-            transferModel.setTwoImpulseTransfer(
-                psoResult.initial_radius, psoResult.initial_inclination,
-                psoResult.target_radius, psoResult.target_inclination,
-                psoResult.initial_eccentricity, psoResult.target_eccentricity,
-                psoResult.initial_true_anomaly, psoResult.final_true_anomaly,
-                //{0.5, 0.5} // TO REMOVE
-                psoResult.delta_v_magnitudes, psoResult.plane_change
-            );
+        transferModel.setTwoImpulseTransfer(
+            psoResult.initial_radius, psoResult.initial_inclination,
+            psoResult.target_radius, psoResult.target_inclination,
+            psoResult.initial_eccentricity, psoResult.target_eccentricity,
+            psoResult.initial_true_anomaly, psoResult.final_true_anomaly,
+            //{0.5, 0.5} // TO REMOVE
+            psoResult.delta_v_magnitudes, psoResult.plane_change
+        );
+
+        std::cout << "PSO final_true_anomaly: " << psoResult.final_true_anomaly * 180/M_PI << "°" << std::endl;
+
+        glm::vec3 pso_target_pos = Physics::OrbitMechanics::calculateOrbitPosition(
+            psoResult.target_radius,
+            psoResult.target_inclination,
+            psoResult.final_true_anomaly
+        );
+
+        std::cout << "PSO expects target at: (" << pso_target_pos.x << ", "
+                  << pso_target_pos.y << ", " << pso_target_pos.z << ")" << std::endl;
+
+        if (std::abs(psoResult.target_inclination) < 1e-6) {  // Equatorial orbit
+            // For position (1.5, 0, 0), we need ν = 0°
+            psoResult.final_true_anomaly = 0.0;
+            std::cout << "Corrected final_true_anomaly to 0° to match expected position (1.5, 0, 0)" << std::endl;
         }
+
     } else {
         // Default case
         initialOrbit.setCircularOrbit(6671.53, 0.0f);
@@ -218,12 +195,6 @@ int main(int argc, char* argv[]) {
             { 0.0, 0.0 }, { 0.0, 0.0 }
         );
     }
-
-    impulseModel.setImpulses(
-        transferModel.getImpulsePositions(),
-        transferModel.getImpulseDirections(),
-        transferModel.getImpulseMagnitudes()
-    );
 
     camera.setupCoordinateShaders(axesShader);
     camera.setupCoordinateAxes(axesVAO, axesVBO);
@@ -251,9 +222,6 @@ int main(int argc, char* argv[]) {
         Camera* camera = static_cast<Camera*>(glfwGetWindowUserPointer(window));
         camera->zoom(yoffset);
     });
-
-    //DebugLine debugLine;
-    //debugLine.initialize();
 
     std::cout << "Controls:\n"
     << "  Left mouse button + drag: Rotate camera\n"
@@ -337,7 +305,6 @@ int main(int argc, char* argv[]) {
 
         glEnable(GL_DEPTH_TEST);
 
-        // View and projection matrices
         glm::mat4 view = camera.getViewMatrix();
         glm::mat4 projection = camera.getProjectionMatrix((float)width / height);
         glm::mat4 viewProjection = projection * view;
@@ -345,6 +312,8 @@ int main(int argc, char* argv[]) {
         // Render orbits
         initialOrbit.render(orbitShader, viewProjection, glm::vec3(0.2f, 0.6f, 1.0f)); // Blue for initial
         targetOrbit.render(orbitShader, viewProjection, glm::vec3(1.0f, 0.3f, 0.3f));  // Red for target
+
+        transferModel.renderCorrectedTransfer(orbitShader, viewProjection, glm::vec3(0.0f, 1.0f, 0.0f));
 
         // Render full transfer orbit
         if (show_complete_ellipse) {
@@ -354,13 +323,8 @@ int main(int argc, char* argv[]) {
         // Render transfer with animation
         transferModel.render(transferShader, viewProjection, glm::vec3(1.0f, 1.0f, 0.0f), animation.getProgress());
 
-        // Render impulse arrows
-        //impulseModel.render(impulseShader, viewProjection, animation.getProgress());
-
         camera.displayCameraPosition(camera);
         //camera.renderCoordinateAxes(axesShader, viewProjection, axesVAO);
-
-        //debugLine.render(orbitShader, viewProjection, glm::vec3(1.0f, 1.0f, 1.0f));
 
         glfwSwapBuffers(window);
         glfwPollEvents();

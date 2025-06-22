@@ -4,8 +4,10 @@
 #include <cmath>
 #include <iostream>
 
-#include "Shader.hpp"
-#include "OrbitModel.hpp"
+#include "visualization/Shader.hpp"
+#include "visualization/OrbitModel.hpp"
+#include "core/Constants.hpp"
+#include "core/CoordinateSystem.hpp"
 
 OrbitModel::OrbitModel() : vao_(0), vbo_(0), initialized_(false) {}
 
@@ -25,7 +27,6 @@ void OrbitModel::initialize() {
     initialized_ = true;
 }
 
-// Set orbital parameters - for circular orbits
 void OrbitModel::setCircularOrbit(double radius, double inclination, double raan) {
     radius_ = radius;
     inclination_ = inclination;
@@ -37,7 +38,6 @@ void OrbitModel::setCircularOrbit(double radius, double inclination, double raan
     updateBuffers();
 }
 
-// Set orbital parameters - for elliptical orbits
 void OrbitModel::setEllipticalOrbit(double semi_major_axis, double eccentricity,
                         double inclination, double raan,
                         double arg_periapsis) {
@@ -68,7 +68,6 @@ glm::vec3 OrbitModel::calculateRenderedCenter() {
 void OrbitModel::render(const Shader& shader, const glm::mat4& view_projection, const glm::vec3& color) {
     if (!initialized_ || orbit_points_.empty()) return;
 
-    // Calculate and print the actual rendered center
     glm::vec3 center = calculateRenderedCenter();
     //std::cout << "Rendered orbit center: " << center.x << ", " << center.y << ", " << center.z << std::endl;
 
@@ -79,8 +78,6 @@ void OrbitModel::render(const Shader& shader, const glm::mat4& view_projection, 
     glBindVertexArray(vao_);
     glDrawArrays(GL_LINE_LOOP, 0, static_cast<GLsizei>(orbit_points_.size()));
 
-    // Optionally, render the center as a marker
-    // Create a temporary VAO and VBO for the center marker
     GLuint centerVAO, centerVBO;
     glGenVertexArrays(1, &centerVAO);
     glGenBuffers(1, &centerVBO);
@@ -101,11 +98,9 @@ void OrbitModel::render(const Shader& shader, const glm::mat4& view_projection, 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // Use white color for the center marker
     shader.setVec3("color", glm::vec3(1.0f, 1.0f, 1.0f));
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(centerMarker.size()));
 
-    // Clean up temporary objects
     glDeleteVertexArrays(1, &centerVAO);
     glDeleteBuffers(1, &centerVBO);
 
@@ -114,42 +109,56 @@ void OrbitModel::render(const Shader& shader, const glm::mat4& view_projection, 
 
 void OrbitModel::generateOrbitPoints(int resolution) {
     orbit_points_.clear();
+    std::vector<glm::vec3> physics_points;
 
-    // Generate orbit in the orbital plane
     for (int i = 0; i < resolution; ++i) {
-        double theta = 2.0 * M_PI * i / resolution;
+        double true_anomaly = 2.0 * M_PI * i / (resolution - 1);
 
         double r;
         if (eccentricity_ < 1e-6) { // Circular orbit
             r = radius_;
         } else { // Elliptical orbit
-            r = radius_ * (1.0 - eccentricity_ * eccentricity_) /
-                (1.0 + eccentricity_ * cos(theta));
+            double p = radius_ * (1.0 - eccentricity_ * eccentricity_);
+            r = p / (1.0 + eccentricity_ * cos(true_anomaly));
         }
 
         // Position in orbital plane
-        double x = r * cos(theta);
-        double y = r * sin(theta);
-        double z = 0.0;
+        glm::vec3 pos_orbital(
+            r * cos(true_anomaly),
+            r * sin(true_anomaly),
+            0.0
+        );
 
-        // Rotate by argument of periapsis around z-axis
-        double x1 = x * cos(arg_periapsis_) - y * sin(arg_periapsis_);
-        double y1 = x * sin(arg_periapsis_) + y * cos(arg_periapsis_);
+        // Transform to inertial physics coordinates
+        glm::mat3 R = CoordinateSystem::orbitalToInertialMatrix(
+            raan_, inclination_, arg_periapsis_
+        );
 
-        // Rotate by inclination around x-axis
-        double y2 = y1 * cos(inclination_);
-        double z2 = y1 * sin(inclination_);
+        glm::vec3 pos_physics = R * pos_orbital;
+        physics_points.push_back(pos_physics);
 
-        // Rotate by RAAN around z-axis
-        double x3 = x1 * cos(raan_) - y2 * sin(raan_);
-        double y3 = x1 * sin(raan_) + y2 * cos(raan_);
-
-        orbit_points_.push_back(glm::vec3(x3, z2, y3)); // Note: y and z swapped for OpenGL
+        // Debug
+        if (i == 0 || i == resolution/4 || i == resolution/2 || i == 3*resolution/4) {
+            std::cout << "Orbit point at nu=" << true_anomaly * 180/M_PI
+                      << "°: " << pos_physics.x << ", " << pos_physics.y
+                      << ", " << pos_physics.z << std::endl;
+        }
     }
 
-    float visualScale = 1000.0f;
-    for (auto& point : orbit_points_) {
-        point *= visualScale;
+    orbit_points_ = CoordinateSystem::trajectoryToVisualization(physics_points);
+
+    if (physics_points.size() >= 3) {
+        glm::vec3 expected_normal(
+            sin(raan_) * sin(inclination_),
+            -cos(raan_) * sin(inclination_),
+            cos(inclination_)
+        );
+
+        if (!CoordinateSystem::verifyOrbitalPlane(physics_points, expected_normal, 0.01f)) {
+            std::cerr << "WARNING: Orbit not in expected plane!" << std::endl;
+            std::cerr << "  Inclination: " << inclination_ * 180/M_PI << "°" << std::endl;
+            std::cerr << "  RAAN: " << raan_ * 180/M_PI << "°" << std::endl;
+        }
     }
 }
 

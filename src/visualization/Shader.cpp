@@ -5,7 +5,7 @@
 #include <sstream>
 #include <iostream>
 
-#include "Shader.hpp"
+#include "visualization/Shader.hpp"
 
 Shader::Shader() : ID(0) {}
 

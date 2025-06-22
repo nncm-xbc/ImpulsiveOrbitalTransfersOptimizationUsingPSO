@@ -6,36 +6,30 @@
 
 // Structure to hold PSO optimization results for visualization
 struct PSOOrbitTransferResult {
-    // Initial orbit parameters
     double initial_radius;
     double initial_inclination;
     double initial_raan;
     double initial_eccentricity;
     double initial_arg_periapsis;
-    
-    // Target orbit parameters
+
     double target_radius;
     double target_inclination;
     double target_raan;
     double target_eccentricity;
     double target_arg_periapsis;
-    
+
     // Optimal transfer parameters
     double initial_true_anomaly;    // Where first impulse occurs
     double final_true_anomaly;      // Where second impulse occurs
     double transfer_time;           // Time of flight for the transfer
-    
-    // For three-impulse transfers
-    bool is_three_impulse;
-    double intermediate_radius;
-    
+
     // Delta-V info
     std::vector<double> delta_v_magnitudes;
     std::vector<double> plane_change;
 
     // Default constructor
-    PSOOrbitTransferResult() : 
-        initial_radius(0.0), initial_inclination(0.0), initial_raan(0.0), 
+    PSOOrbitTransferResult() :
+        initial_radius(0.0), initial_inclination(0.0), initial_raan(0.0),
         initial_eccentricity(0.0), initial_arg_periapsis(0.0),
         target_radius(0.0), target_inclination(0.0), target_raan(0.0),
         target_eccentricity(0.0), target_arg_periapsis(0.0),
@@ -49,35 +43,34 @@ bool loadPSOResultsFromFile(const std::string& filename, PSOOrbitTransferResult&
         std::cerr << "Failed to open PSO results file: " << filename << std::endl;
         return false;
     }
-    
+
     std::string line;
     std::string section;
-    
+
     while (std::getline(file, line)) {
         // Skip empty lines and comments
         if (line.empty() || line[0] == '#')
             continue;
-        
+
         // Check for section headers
         if (line[0] == '[' && line.back() == ']') {
             section = line.substr(1, line.size() - 2);
             continue;
         }
-        
+
         // Parse key-value pairs
         std::istringstream iss(line);
         std::string key;
         std::string equals;
         std::string value;
-        
+
         if (std::getline(iss, key, '=') && std::getline(iss, value)) {
             // Trim whitespace
             key.erase(0, key.find_first_not_of(" \t"));
             key.erase(key.find_last_not_of(" \t") + 1);
             value.erase(0, value.find_first_not_of(" \t"));
             value.erase(value.find_last_not_of(" \t") + 1);
-            
-            // Process based on section
+
             if (section == "InitialOrbit") {
                 if (key == "radius" || key == "semi_major_axis")
                     result.initial_radius = std::stod(value);
@@ -134,7 +127,7 @@ bool loadPSOResultsFromFile(const std::string& filename, PSOOrbitTransferResult&
             }
         }
     }
-    
+
     file.close();
     return true;
 }

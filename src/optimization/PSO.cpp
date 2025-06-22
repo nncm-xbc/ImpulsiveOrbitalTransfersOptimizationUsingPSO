@@ -1,8 +1,8 @@
-#include "PSO.hpp"
-#include "Logger.hpp"
-#include "ExactSolution.hpp"
-#include "OrbitProblem.hpp"
-#include "PSOGlobals.hpp"
+#include "optimization/PSO.hpp"
+#include "optimization/Logger.hpp"
+#include "core/ExactSolution.hpp"
+#include "optimization/PSOGlobals.hpp"
+#include "core/OrbitProblem.hpp"
 
 #include <iomanip>
 #include <vector>
@@ -124,7 +124,6 @@ void PSO<T, Fun>::printResults() const
     std::cout << "║ Iterations performed: " << std::setw(41) << _maxIterations << " ║" << std::endl;
     std::cout << "╚═════════════════════════════════════════════════════════════════╝" << std::endl;
 
-    // Additional information for orbital transfer problems
     std::cout << "\nTotal ΔV for transfer: " << swarm.getGlobalBestValue() << " km/s" << std::endl;
 }
 
@@ -155,7 +154,6 @@ void PSO<T, Fun>::saveResults(const std::string& filename, OrbitTransferObjectiv
     switch(caseType) {
         case 1: outFile << "coplanar circular orbits"; break;
         case 2: outFile << "non-coplanar circular orbits"; break;
-        case 3: outFile << "elliptic orbits"; break;
     }
     outFile << std::endl << std::endl;
 
@@ -193,5 +191,4 @@ void PSO<T, Fun>::saveResults(const std::string& filename, OrbitTransferObjectiv
     outFile.close();
 }
 
-// Explicit instantiation
 template class PSO<double, std::function<double(double*)>>;

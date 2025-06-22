@@ -1,4 +1,4 @@
-#include "OrbitProblem.hpp"
+#include "core/OrbitProblem.hpp"
 
 template<typename T>
 class HohmannSolution {

@@ -1,4 +1,4 @@
-#include "Swarm.hpp"
+#include "optimization/Swarm.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -107,13 +107,13 @@ void Swarm<T, Fun>::updateVelocity(Particle<T, Fun> &particle)
     std::vector<T> newVelocity(particle.getVelocity());
     const std::vector<T> &position = particle.getPosition();
     const std::vector<T> &pBest = particle.getBestPosition();
-    
+
     for (size_t i = 0; i < _dimension; ++i)
     {
         T r1 = _dis[i](_rng);
         T r2 = _dis[i](_rng);
 
-        if (position[i] + newVelocity[i] < _lowerBounds[i] || position[i] + newVelocity[i] > _upperBounds[i]) 
+        if (position[i] + newVelocity[i] < _lowerBounds[i] || position[i] + newVelocity[i] > _upperBounds[i])
         {
             newVelocity[i] = 0.0;
         } else {
@@ -271,11 +271,9 @@ void Swarm<T, Fun>::setSocialWeight(const T &socialWeight)
     _socialWeight = socialWeight;
 }
 
-// Memory management
 template <typename T, typename Fun> void Swarm<T, Fun>::deallocateMemory()
 {
     particles.clear();
 }
 
-// Explicit instantiation
 template class Swarm<double, std::function<double(double*)>>;

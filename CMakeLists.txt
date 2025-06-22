@@ -24,7 +24,7 @@ endif()
 
 set(CMAKE_CXX_STANDARD 20)
 option(PROF "Enable profiling" OFF)
-set(PROF_DIR "${CMAKE_SOURCE_DIR}/ressources/")
+set(PROF_DIR "${CMAKE_SOURCE_DIR}/resources/")
 
 # ------------------------------------------------------------------------------------------------------
 # Find OpenMP
@@ -55,89 +55,113 @@ endif()
 # Set debug flags
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -O0 -g")
 
-# Source files
-set(SOURCES
-  src/Swarm.cpp
-  src/PSO.cpp
-  src/OrbitProblem.cpp
-  src/Logger.cpp
-  rendering/src/Animation.cpp
-  rendering/src/Camera.cpp
-  rendering/src/ImpulseModel.cpp
-  rendering/src/OrbitModel.cpp
-  rendering/src/Shader.cpp
-  rendering/src/TransferModel.cpp
-)
-
 # Include directories
-include_directories(include)
-include_directories(rendering/include)
-include_directories(glad/include)
-add_library(PSO_lib ${SOURCES})
-
-# Main executable
-add_executable(main src/main.cpp)
-
-# Secondary rendering executable
-add_executable(rendering
-    rendering/src/main.cpp
-    ${GLAD_SRC}  # Add the GLAD implementation
-)
-
-target_link_libraries(main PRIVATE PSO_lib)
-target_link_libraries(rendering PRIVATE PSO_lib)
-
-# Link OpenMP
-target_link_libraries(main PRIVATE $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>)
-
-# Link OpenGL and GLFW
+include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/glad/include)
 include_directories(${GLM_INCLUDE_DIR})
 include_directories(${GLFW_INCLUDE_DIR})
 
-target_include_directories(rendering PRIVATE
-    ${CMAKE_SOURCE_DIR}/glad/include
+# ------------------------------------------------------------------------------------------------------
+# Source files organized by module
+
+# Core physics and math sources
+set(CORE_SOURCES
+    src/core/OrbitProblem.cpp
+    src/core/LambertSolver.cpp
+    src/core/OrbitMechanics.cpp
 )
 
-target_link_libraries(rendering PRIVATE ${OPENGL_LIBRARIES})
+# Optimization sources
+set(OPTIMIZATION_SOURCES
+    src/optimization/PSO.cpp
+    src/optimization/Swarm.cpp
+    src/optimization/Logger.cpp
+)
+
+# Visualization sources
+set(VISUALIZATION_SOURCES
+    src/visualization/OrbitModel.cpp
+    src/visualization/TransferModel.cpp
+    src/visualization/Camera.cpp
+    src/visualization/Animation.cpp
+    src/visualization/Shader.cpp
+    ${GLAD_SRC}  # GLAD is part of visualization
+)
+
+# All library sources
+set(LIB_SOURCES
+    ${CORE_SOURCES}
+    ${OPTIMIZATION_SOURCES}
+    ${VISUALIZATION_SOURCES}
+)
+
+# ------------------------------------------------------------------------------------------------------
+# Create libraries
+
+# Core library (physics and optimization - no OpenGL dependencies)
+add_library(PSO_core STATIC
+    ${CORE_SOURCES}
+    ${OPTIMIZATION_SOURCES}
+)
+
+# Visualization library (OpenGL dependent)
+add_library(PSO_visualization STATIC
+    ${VISUALIZATION_SOURCES}
+)
+
+# Link OpenGL to visualization library
+target_link_libraries(PSO_visualization PUBLIC ${OPENGL_LIBRARIES})
 if(APPLE)
-  execute_process(
-    COMMAND brew --prefix
-    OUTPUT_VARIABLE HOMEBREW_PREFIX
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
-  find_library(GLFW_LIBRARY glfw NAMES glfw3 PATHS "${HOMEBREW_PREFIX}/lib" REQUIRED)
-  target_link_libraries(rendering PRIVATE ${GLFW_LIBRARY})
+    execute_process(
+        COMMAND brew --prefix
+        OUTPUT_VARIABLE HOMEBREW_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    find_library(GLFW_LIBRARY glfw NAMES glfw3 PATHS "${HOMEBREW_PREFIX}/lib" REQUIRED)
+    target_link_libraries(PSO_visualization PUBLIC ${GLFW_LIBRARY})
 else()
-  target_link_libraries(rendering PRIVATE glfw)
+    target_link_libraries(PSO_visualization PUBLIC glfw)
 endif()
+
+# ------------------------------------------------------------------------------------------------------
+# Main executables
+
+# PSO computation executable (no visualization)
+add_executable(pso_compute src/application/pso_main.cpp)
+target_link_libraries(pso_compute PRIVATE PSO_core)
+target_link_libraries(pso_compute PRIVATE $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>)
+
+# Visualization executable (includes everything)
+add_executable(pso_visualize src/application/render_main.cpp)
+target_link_libraries(pso_visualize PRIVATE PSO_core PSO_visualization)
+target_link_libraries(pso_visualize PRIVATE $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>)
+target_compile_definitions(pso_visualize PRIVATE WITH_VISUALIZATION)
 
 # ------------------------------------------------------------------------------------------------------
 # Testing
 enable_testing()
-find_package(Catch2 REQUIRED)
+find_package(Catch2)
 if(Catch2_FOUND)
-  message("-- Catch2 was found")
+    message("-- Catch2 was found")
 
     # Add test executable
-  set(TEST_SOURCES
-    # tests/test_particle.cpp
-    # tests/test_swarm.cpp
-    tests/test_PSO.cpp
-    tests/test_OrbitProblem.cpp
-    tests/test_OrbitTransfer.cpp
-  )
+    set(TEST_SOURCES
+        # tests/test_particle.cpp
+        # tests/test_swarm.cpp
+        tests/test_PSO.cpp
+        tests/test_OrbitProblem.cpp
+        tests/test_OrbitTransfer.cpp
+    )
 
-  add_executable(run_tests ${TEST_SOURCES})
+    add_executable(run_tests ${TEST_SOURCES})
+    target_link_libraries(run_tests PRIVATE PSO_core)
+    target_link_libraries(run_tests PRIVATE Catch2::Catch2WithMain)
 
-  target_link_libraries(run_tests PRIVATE PSO_lib)
-  target_link_libraries(run_tests PRIVATE Catch2::Catch2WithMain)
-
-  # Add tests
-  include(Catch)
-  catch_discover_tests(run_tests)
-
+    # Add tests
+    include(Catch)
+    catch_discover_tests(run_tests)
 else()
-  message(FATAL_ERROR "Catch2 was not found. Please install it.")
+    message(WARNING "Catch2 was not found. Tests will not be built.")
 endif()
 
 # ------------------------------------------------------------------------------------------------------
@@ -152,8 +176,26 @@ if(PROF)
     # Custom target for profiling
     add_custom_target(profile
         COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
-        COMMAND ./main
-        COMMAND gprof main gmon.out > "${PROF_DIR}/ProfAnalysis.txt"
-        DEPENDS main
+        COMMAND ./pso_compute
+        COMMAND gprof pso_compute gmon.out > "${PROF_DIR}/ProfAnalysis.txt"
+        DEPENDS pso_compute
     )
 endif()
+
+# ------------------------------------------------------------------------------------------------------
+# Installation rules (optional)
+install(TARGETS pso_compute pso_visualize
+    RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/
+    DESTINATION include
+)
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/shaders/
+    DESTINATION share/pso/shaders
+)
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/resources/
+    DESTINATION share/pso/resources
+)

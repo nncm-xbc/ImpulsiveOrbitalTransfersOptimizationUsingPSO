@@ -8,7 +8,7 @@
 int main()
 {
     // Define PSO parameters
-    size_t numParticles = 1000;
+    size_t numParticles = 500;
     size_t dimension = 6;
         // x[0]: departure true anomaly (0 to 2π)
         // x[1]: arrival true anomaly (0 to 2π)
@@ -16,7 +16,7 @@ int main()
         // x[3]: second impulse direction (-π/2 to π/2)
         // x[4]: First impulse direction (0 to 2π)
         // x[5]: time of flight (0 to 1)
-    size_t maxIterations = 5000;
+    size_t maxIterations = 10000;
     double tolerance = 1e-2;
     double inertiaWeight = 0.5;
     double cognitiveWeight = 2.0;

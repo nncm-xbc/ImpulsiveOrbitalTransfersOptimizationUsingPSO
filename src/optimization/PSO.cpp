@@ -6,6 +6,7 @@
 
 #include <iomanip>
 #include <vector>
+#include <omp.h>
 
 template <typename T, typename Fun>
 PSO<T, Fun>::PSO(size_t numParticles,
@@ -52,7 +53,7 @@ void PSO<T, Fun>::solve()
 
         std::vector<T> GBPos_previous = swarm.getGlobalBestPosition();
 
-
+        #pragma omp parallel for schedule(static)
         for (size_t i = 0; i < swarm.getNumParticles(); ++i)
         {
             auto &particle = swarm.particles[i];
@@ -203,7 +204,6 @@ void PSO<T, Fun>::saveResults(const std::string& filename, OrbitTransferObjectiv
     outFile << std::endl << "[DeltaV]" << std::endl;
     outFile << "magnitude = " << details["impulse_mag_1"] << "," << details["impulse_mag_2"] << std::endl;
 
-    // Add plane change info for non-coplanar transfers
     if (caseType == 2) {
         outFile << "plane_change = " << details["plane_change_1"] << "," << details["plane_change_2"] << std::endl;
     }

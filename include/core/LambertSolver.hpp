@@ -178,6 +178,7 @@ public:
                          const glm::dvec3& r2,
                          double expected_tof) const;
 
+    
 private:
     /** @brief Gravitational parameter for the central body */
     double mu_;

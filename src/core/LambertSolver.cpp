@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <omp.h>
 
 namespace Physics {
 
@@ -35,7 +36,6 @@ std::pair<glm::dvec3, glm::dvec3> LambertSolver::solveLambert(
     double h_T_mag = h_T.magnitude();
 
     if (h_T_mag < 1e-10) {
-        // For coplanar orbits, use z-axis as normal vector
         h_T = Physics::Vector3(0, 0, 1);
     } else {
         h_T = Physics::Vector3(h_T.x / h_T_mag, h_T.y / h_T_mag, h_T.z / h_T_mag);
@@ -55,7 +55,6 @@ std::pair<glm::dvec3, glm::dvec3> LambertSolver::solveLambert(
     }
     double t_min = std::sqrt(a_min*a_min*a_min / mu) * (alpha_min - std::sin(alpha_min) - M_PI + std::sin(M_PI));
 
-    // Check if transfer is physically possible
     if (tof < t_min) {
         std::cout << "Error: Time of flight is less than minimum possible." << std::endl;
         return std::make_pair(glm::dvec3(), glm::dvec3());
@@ -71,6 +70,7 @@ std::pair<glm::dvec3, glm::dvec3> LambertSolver::solveLambert(
     const double tolerance = 1e-8;
 
     for (int i = 0; i < max_iter && std::abs(tof_current - tof) > tolerance; ++i) {
+
         if (tof_current < tof) {
             a_lower = a;
         } else {
@@ -79,14 +79,40 @@ std::pair<glm::dvec3, glm::dvec3> LambertSolver::solveLambert(
         a = (a_lower + a_upper) / 2.0;
 
         // Time of flight for current semi-major axis
-        double alpha = 2.0 * std::asin(std::sqrt(s / (2.0 * a)));
-        double beta = 2.0 * std::asin(std::sqrt((s - chord) / (2.0 * a)));
+        double alpha, beta, sin_alpha, sin_beta;
 
-        if (theta > M_PI) {
-            alpha = 2.0 * M_PI - alpha;
+        #ifdef USE_OPENMP
+        #pragma omp parallel sections
+        {
+            #pragma omp section
+            {
+                alpha = 2.0 * std::asin(std::sqrt(s / (2.0 * a)));
+
+                if (theta > M_PI) {
+                    alpha = 2.0 * M_PI - alpha;
+                }
+                sin_alpha = std::sin(alpha);
+            }
+            
+            #pragma omp section 
+            {
+                beta = 2.0 * std::asin(std::sqrt((s - chord) / (2.0 * a)));
+                sin_beta = std::sin(beta);
+            }
         }
+        #else
+        {
+            alpha = 2.0 * std::asin(std::sqrt(s / (2.0 * a)));
+            if (theta > M_PI) {
+                alpha = 2.0 * M_PI - alpha;
+            }
+            sin_alpha = std::sin(alpha);
+            beta = 2.0 * std::asin(std::sqrt((s - chord) / (2.0 * a)));
 
-        tof_current = std::sqrt(a*a*a / mu) * (alpha - std::sin(alpha) - (beta - std::sin(beta)));
+        }
+        #endif
+
+        tof_current = std::sqrt(a*a*a / mu) * (alpha - sin_alpha - (beta - sin_beta));
     }
 
     // Lagrange coefficients
@@ -99,11 +125,29 @@ std::pair<glm::dvec3, glm::dvec3> LambertSolver::solveLambert(
 
         if (std::abs(theta) < delta || std::abs(theta - 2*M_PI) < delta) {
             // For θ ≈ 0° (direct transfer)
-            double h = r2_mag - r1_mag; // Altitude difference
-            f = 1.0 - h/a;
-            g = tof - sqrt(a*a*a/mu) * (theta - sin_theta);
-            g_dot = 1.0;
-            f_dot = -sqrt(mu/(a*a*a)) * h;
+            double h = r2_mag - r1_mag;
+
+            #ifdef USE_OPENMP
+            #pragma omp parallel sections
+            {
+                #pragma omp section 
+                {
+                    f = 1.0 - h/a;
+                    f_dot = -sqrt(mu/(a*a*a)) * h;
+                }
+                #pragma omp section
+                {
+                    g = tof - sqrt(a*a*a/mu) * (theta - sin_theta);
+                    g_dot = 1.0;
+                }
+            }
+            #else
+                f = 1.0 - h/a;
+                f_dot = -std::sqrt(mu/(a*a*a)) * h;
+                g = tof - std::sqrt(a*a*a/mu) * (theta - sin_theta);
+                g_dot = 1.0;
+            #endif
+
         } else if (std::abs(theta - M_PI) < delta) {
             // For θ ≈ 180° (transfer through central body)
             f = -1.0;
@@ -116,17 +160,37 @@ std::pair<glm::dvec3, glm::dvec3> LambertSolver::solveLambert(
         }
     } else {
         // Normal case
+        #ifdef USE_OPENMP
+        #pragma omp parallel sections
+        {
+            #pragma omp section
+            {
+                f = 1.0 - r2_mag / a * (1.0 - std::cos(theta));
+                g_dot = 1.0 - r1_mag / a * (1.0 - std::cos(theta));
+            }
+            #pragma omp section
+            {
+                g = r1_mag * r2_mag * sin_theta / std::sqrt(mu * a);
+                f_dot = -std::sqrt(mu / a) * sin_theta / (r1_mag * r2_mag) * r2_mag;
+            }
+        }
+        #else
         f = 1.0 - r2_mag / a * (1.0 - std::cos(theta));
         g = r1_mag * r2_mag * sin_theta / std::sqrt(mu * a);
         g_dot = 1.0 - r1_mag / a * (1.0 - std::cos(theta));
         f_dot = -std::sqrt(mu / a) * sin_theta / (r1_mag * r2_mag) * r2_mag;
+        #endif    
     }
 
     // Velocity vectors
-    Physics::Vector3 v1((r2.x - f * r1.x) / g, (r2.y - f * r1.y) / g, (r2.z - f * r1.z) / g);
-    Physics::Vector3 v2(f_dot * r1.x + g_dot * v1.x, f_dot * r1.y + g_dot * v1.y, f_dot * r1.z + g_dot * v1.z);
+    Physics::Vector3 v1((r2.x - f * r1.x) / g,
+                        (r2.y - f * r1.y) / g,
+                        (r2.z - f * r1.z) / g);
 
-    // Convert back to glm::dvec3
+    Physics::Vector3 v2(f_dot * r1.x + g_dot * v1.x, 
+                        f_dot * r1.y + g_dot * v1.y, 
+                        f_dot * r1.z + g_dot * v1.z);
+
     return std::make_pair(glm::dvec3(v1), glm::dvec3(v2));
 }
 

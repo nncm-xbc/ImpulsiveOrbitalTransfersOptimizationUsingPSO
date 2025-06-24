@@ -50,7 +50,7 @@ void TransferModel::setTwoImpulseTransfer(double initialRadius, double initialIn
     updateBuffers();
     debugTargetPosition();
 
-    glm::vec3 expected_target(1.5, 0, 0);  // What we expect
+    glm::vec3 expected_target(1.5, 0, 0);
     glm::vec3 actual_target = Physics::OrbitMechanics::calculateOrbitPosition(
         target_radius_, target_inclination_, final_true_anomaly_);
 
@@ -63,7 +63,6 @@ void TransferModel::setTwoImpulseTransfer(double initialRadius, double initialIn
 
         // Auto-correct if needed
         if (std::abs(targetInclination) < 1e-6 && std::abs(targetEccentricity) < 1e-6) {
-            // For circular equatorial orbit, calculate correct true anomaly
             final_true_anomaly_ = atan2(expected_target.y, expected_target.x);
             std::cout << "  Auto-corrected final_true_anomaly to "
                         << final_true_anomaly_ * 180/M_PI << "°" << std::endl;
@@ -208,26 +207,20 @@ void TransferModel::generateTransferTrajectory() {
     // NON-COPLANAR CASE
     // ============================================
     else {
-            glm::vec3 expected_r0 = r0;  // Use calculated position as expected
-            glm::vec3 expected_rf = rf;  // Use calculated position as expected
+            glm::vec3 expected_r0 = r0;
+            glm::vec3 expected_rf = rf;
 
             printPositionVerification(r0, expected_r0, "Initial Position");
             printPositionVerification(rf, expected_rf, "Target Position");
-
-            // *** CHANGE 2: DEFINE TRANSFER PLANE USING CROSS PRODUCT ***
-            // This guarantees the transfer orbit intersects both departure and arrival
 
             // The transfer orbit MUST lie in the plane containing r0, rf, and origin
             glm::vec3 transfer_normal = glm::normalize(glm::cross(r0, rf));
 
             // Handle degenerate case (collinear points)
             if (glm::length(transfer_normal) < 1e-6f) {
-                // Use a default plane (e.g., xy-plane)
                 transfer_normal = glm::vec3(0.0f, 0.0f, 1.0f);
             }
 
-            // *** CHANGE 3: SIMPLIFIED ORBIT PARAMETERS ***
-            // Use geometric approach instead of complex energy/angular momentum calcs
 
             float r0_mag = glm::length(r0);
             float rf_mag = glm::length(rf);
@@ -236,7 +229,6 @@ void TransferModel::generateTransferTrajectory() {
             transfer_semi_major_ = (r0_mag + rf_mag) / 2.0f;
             transfer_eccentricity_ = std::abs(rf_mag - r0_mag) / (rf_mag + r0_mag);
 
-            // Direction to periapsis (closer orbit)
             glm::vec3 periapsis_dir;
             if (r0_mag < rf_mag) {
                 periapsis_dir = glm::normalize(r0);
@@ -244,23 +236,15 @@ void TransferModel::generateTransferTrajectory() {
                 periapsis_dir = glm::normalize(rf);
             }
 
-            // *** CHANGE 4: PERPENDICULAR IN TRANSFER PLANE ***
-            // Direction perpendicular to periapsis in the transfer plane
             glm::vec3 perpendicular_dir = glm::normalize(glm::cross(transfer_normal, periapsis_dir));
 
-            // *** CHANGE 5: DIRECT GEOMETRIC ELLIPSE CONSTRUCTION ***
-            // Build ellipse directly using periapsis and perpendicular directions
 
             const int resolution = 500;
             float p = transfer_semi_major_ * (1.0f - transfer_eccentricity_ * transfer_eccentricity_);
 
-            // *** FIX: BETTER ANGLE CALCULATION ***
-            // Find true anomalies for departure and arrival points
             float nu0 = atan2(glm::dot(r0, perpendicular_dir), glm::dot(r0, periapsis_dir));
             float nuf = atan2(glm::dot(rf, perpendicular_dir), glm::dot(rf, periapsis_dir));
 
-            // *** FIX: USE CALCULATED ANGLES FROM ACTUAL POSITIONS ***
-            // Find true anomalies for departure and arrival points based on actual geometry
                 nu0 = atan2(glm::dot(r0, perpendicular_dir), glm::dot(r0, periapsis_dir));
             nuf = atan2(glm::dot(rf, perpendicular_dir), glm::dot(rf, periapsis_dir));
 
@@ -272,7 +256,6 @@ void TransferModel::generateTransferTrajectory() {
             while (delta_nu < -M_PI) delta_nu += 2.0f * M_PI;
 
             // If the angle is very small, the points might be nearly collinear
-            // In that case, use a reasonable transfer arc
             if (std::abs(delta_nu) < 0.1f) {
                 delta_nu = M_PI;  // Use 180° transfer
             }
@@ -282,27 +265,22 @@ void TransferModel::generateTransferTrajectory() {
             std::vector<glm::vec3> physics_transfer_points;
             std::vector<glm::vec3> physics_ellipse_points;
 
-            // *** CHANGE 6: SIMPLIFIED ELLIPSE GENERATION ***
             // Generate complete ellipse
             for (int i = 0; i < resolution; ++i) {
                 float true_anomaly = 2.0f * M_PI * i / resolution;
                 float r = p / (1.0f + transfer_eccentricity_ * cos(true_anomaly));
 
-                glm::vec3 pos = r * (cos(true_anomaly) * periapsis_dir +
-                                    sin(true_anomaly) * perpendicular_dir);
+                glm::vec3 pos = r * (cosf(true_anomaly) * periapsis_dir +
+                                    sinf(true_anomaly) * perpendicular_dir);
                 physics_ellipse_points.push_back(pos);
             }
 
-            // *** FIX: IMPROVED TRANSFER ARC GENERATION WITH DEBUGGING ***
-            // Generate transfer arc (from departure to arrival)
-
-            // Debug the calculated angles
+            // Debug
             std::cout << "\n TRANSFER ARC DEBUG:" << std::endl;
             std::cout << "   nu0 (start): " << nu0 * 180.0f / M_PI << "°" << std::endl;
             std::cout << "   nuf (end):   " << nuf * 180.0f / M_PI << "°" << std::endl;
             std::cout << "   delta_nu:    " << delta_nu * 180.0f / M_PI << "°" << std::endl;
 
-            // Use more transfer steps for smoother visualization
             int transfer_steps = std::max(50, static_cast<int>(std::abs(delta_nu) * resolution / (2.0f * M_PI)));
             std::cout << "   transfer_steps: " << transfer_steps << std::endl;
 
@@ -311,13 +289,12 @@ void TransferModel::generateTransferTrajectory() {
                 float true_anomaly = nu0 + t * delta_nu;
                 float r = p / (1.0f + transfer_eccentricity_ * cos(true_anomaly));
 
-                // Ensure r is positive and reasonable
                 if (r > 0 && r < 10.0f) {  // Reasonable bounds check
-                    glm::vec3 pos = r * (cos(true_anomaly) * periapsis_dir +
-                                        sin(true_anomaly) * perpendicular_dir);
+                    glm::vec3 pos = r * (cosf(true_anomaly) * periapsis_dir +
+                                        sinf(true_anomaly) * perpendicular_dir);
                     physics_transfer_points.push_back(pos);
 
-                    // Debug first few and last few points
+                    // Debug
                     if (i <= 2 || i >= transfer_steps - 2) {
                         std::cout << "   Point " << i << ": r=" << r
                                     << ", pos=(" << pos.x << "," << pos.y << "," << pos.z << ")" << std::endl;
@@ -329,8 +306,6 @@ void TransferModel::generateTransferTrajectory() {
 
             std::cout << "   Generated " << physics_transfer_points.size() << " transfer points" << std::endl;
 
-            // *** FIX: ACCURATE VERIFICATION FOR ACTUAL ENDPOINTS ***
-            // Verify that first and last points match the ACTUAL calculated positions
             if (!physics_transfer_points.empty()) {
                 glm::vec3 first_point = physics_transfer_points.front();
                 glm::vec3 last_point = physics_transfer_points.back();
@@ -341,7 +316,6 @@ void TransferModel::generateTransferTrajectory() {
                 std::cout << "   Last point distance from rf:  "
                             << glm::length(last_point - rf) << std::endl;
 
-                // Additional verification with tolerance
                 bool start_ok = glm::length(first_point - r0) < 0.01f;
                 bool end_ok = glm::length(last_point - rf) < 0.01f;
                 std::cout << "   Transfer connection: "

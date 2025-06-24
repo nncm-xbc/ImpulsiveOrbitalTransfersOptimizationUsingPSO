@@ -24,7 +24,7 @@ endif()
 
 set(CMAKE_CXX_STANDARD 20)
 option(PROF "Enable profiling" OFF)
-set(PROF_DIR "${CMAKE_SOURCE_DIR}/resources/")
+set(PROF_DIR "${CMAKE_SOURCE_DIR}/ressources")
 
 # ------------------------------------------------------------------------------------------------------
 # Find OpenMP

@@ -43,8 +43,8 @@ namespace constant {
 
     // Inclinations
     /** @brief Initial orbit inclination (radians) */
-    inline constexpr double I1 = 0.497419;
-    //inline constexpr double I1  = 0.0;
+    //inline constexpr double I1 = 0.497419;
+    inline constexpr double I1  = 0.0;
 
     /** @brief Target orbit inclination (radians) */
     inline constexpr double I2 = 0.0;

@@ -8,9 +8,9 @@ namespace Physics {
 
 LambertSolver::LambertSolver(double mu) : mu_(mu) {}
 
-std::pair<glm::dvec3, glm::dvec3> LambertSolver::solveLambert(
-    const glm::dvec3& r1_glm,
-    const glm::dvec3& r2_glm,
+std::pair<Physics::Vector3, Physics::Vector3> LambertSolver::solveLambert(
+    const Physics::Vector3& r1_glm,
+    const Physics::Vector3& r2_glm,
     double tof,
     double mu,
     bool isLongWay)
@@ -191,7 +191,7 @@ std::pair<glm::dvec3, glm::dvec3> LambertSolver::solveLambert(
                         f_dot * r1.y + g_dot * v1.y, 
                         f_dot * r1.z + g_dot * v1.z);
 
-    return std::make_pair(glm::dvec3(v1), glm::dvec3(v2));
+    return std::make_pair(v1, v2);
 }
 
 std::optional<LambertSolver::Solution> LambertSolver::solve(
@@ -203,7 +203,7 @@ std::optional<LambertSolver::Solution> LambertSolver::solve(
     auto result = solveLambert(r1, r2, tof, mu_, config.long_way);
 
     // Sanity check
-    if (glm::length(result.first) < 1e-10 && glm::length(result.second) < 1e-10) {
+    if (result.first.magnitude() < 1e-10 && result.second.magnitude() < 1e-10) {
         return std::nullopt;
     }
 

@@ -126,7 +126,7 @@ public:
                                  const Config& config = Config()) const;
 
     /**
-     * @brief Static method for simple Lambert solution (backward compatibility)
+     * @brief Static method for simple Lambert solution
      * @param r1 Initial position vector (DU)
      * @param r2 Final position vector (DU)
      * @param tof Time of flight (TU)
@@ -138,9 +138,9 @@ public:
      * original implementation. Maintained for backward compatibility
      * with existing code.
      */
-    static std::pair<glm::dvec3, glm::dvec3> solveLambert(
-        const glm::dvec3& r1,
-        const glm::dvec3& r2,
+    static std::pair<Physics::Vector3, Physics::Vector3> solveLambert(
+       const Physics::Vector3& r1,
+        const Physics::Vector3& r2,
         double tof,
         double mu,
         bool isLongWay = false);

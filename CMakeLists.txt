@@ -1,6 +1,25 @@
 cmake_minimum_required(VERSION 3.24)
 project(PSO)
 
+# ------------------------------------------------------------------------------------------------------
+# Build type configuration
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release" FORCE)
+endif()
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
+# Set build type specific flags
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -pedantic -O0 -g")
+    message(STATUS "Debug mode: Optimizations disabled, debug symbols enabled")
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -flto -funroll-loops -march=native -Wall")
+    message(STATUS "Release mode: Full optimizations enabled")
+endif()
+
+# ------------------------------------------------------------------------------------------------------
+
 if(APPLE)
     # Use Homebrew's clang instead of Apple's
     execute_process(
@@ -27,14 +46,22 @@ option(PROF "Enable profiling" OFF)
 set(PROF_DIR "${CMAKE_SOURCE_DIR}/ressources")
 
 # ------------------------------------------------------------------------------------------------------
+# Options
+option(PROF "Enable profiling" OFF)
+option(USE_OPENMP "Enable OpenMP support" ON)
+set(PROF_DIR "${CMAKE_SOURCE_DIR}/ressources")
+
+# ------------------------------------------------------------------------------------------------------
 # Find OpenMP
-find_package(OpenMP)
-if(OpenMP_CXX_FOUND)
-    message("-- OpenMP was found")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 ${OpenMP_CXX_FLAGS}")
-    add_definitions(-DUSE_OPENMP)
-else()
-    message("-- OpenMP not found. Building without OpenMP support.")
+if (USE_OPENMP)
+    find_package(OpenMP)
+    if(OpenMP_CXX_FOUND)
+        message("-- OpenMP was found")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+        add_definitions(-DUSE_OPENMP)
+    else()
+        message("-- OpenMP not found. Building without OpenMP support.")
+    endif()
 endif()
 
 # ------------------------------------------------------------------------------------------------------
@@ -52,10 +79,7 @@ else()
 endif()
 
 # ------------------------------------------------------------------------------------------------------
-# Set debug flags
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -O0 -g")
-
-# Include directories
+# Include directories 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/glad/include)
 include_directories(${GLM_INCLUDE_DIR})

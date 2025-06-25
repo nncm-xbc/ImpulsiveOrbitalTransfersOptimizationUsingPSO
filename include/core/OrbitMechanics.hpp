@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <utility>
+#include <stdexcept>
 
 namespace Physics {
 
@@ -84,6 +85,41 @@ namespace Physics {
          */
         double magnitude() const {
             return std::sqrt(x*x + y*y + z*z);
+        }
+
+        /**
+         * @brief Calculate dot product with another vector
+         * @param v Vector to compute dot product with
+         * @return Scalar dot product result
+         */
+        double dot(const Vector3& v) const {
+            return x * v.x + y * v.y + z * v.z;
+        }
+
+        /**
+         * @brief Calculate cross product with another vector
+         * @param v Vector to compute cross product with
+         * @return Vector perpendicular to both input vectors
+         */
+        Vector3 cross(const Vector3& v) const {
+            return Vector3(
+                y * v.z - z * v.y,
+                z * v.x - x * v.z,
+                x * v.y - y * v.x
+            );
+        }
+
+        /**
+         * @brief Return normalized (unit) vector
+         * @return Unit vector in the same direction as this vector
+         * @throws std::runtime_error if vector is zero (cannot normalize)
+         */
+        Vector3 normalized() const {
+            double mag = magnitude();
+            if (mag < 1e-15) {
+                throw std::runtime_error("Vector3: Cannot normalize zero vector");
+            }
+            return Vector3(x / mag, y / mag, z / mag);
         }
     };
 

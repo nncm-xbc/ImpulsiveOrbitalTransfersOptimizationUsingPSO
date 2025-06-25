@@ -160,7 +160,7 @@ void Swarm<T, Fun>::info() const
     std::cout << "║ SWARM CONFIGURATION:                                                 ║" << std::endl;
     std::cout << "║   • Population Size:           " << std::setw(12) << _numParticles << " particles" << std::setw(19) << " ║" << std::endl;
     std::cout << "║   • Problem Dimension:         " << std::setw(12) << _dimension << " parameters" << std::setw(18) << " ║" << std::endl;
-    std::cout << "║   • Search Space:              " << std::setw(20) << "6D continuous" << std::setw(21) << " ║" << std::endl;
+    std::cout << "║   • Search Space:              " << std::setw(20) << "3D continuous" << std::setw(21) << " ║" << std::endl;
 
     std::cout << "╠══════════════════════════════════════════════════════════════════════╣" << std::endl;
 

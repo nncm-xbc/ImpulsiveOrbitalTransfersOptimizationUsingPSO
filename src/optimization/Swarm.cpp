@@ -116,7 +116,13 @@ void Swarm<T, Fun>::updateVelocity(Particle<T, Fun> &particle)
                     _cognitiveWeight * r1 * (pBest[i] - position[i]) +
                     _socialWeight * r2 * (_gBestPos[i] - position[i]);
         }
+
+        double vmax = (_upperBounds[i] - _lowerBounds[i]) * 0.2;  // 20% of search space
+        if (std::abs(newVelocity[i]) > vmax) {
+            newVelocity[i] = (newVelocity[i] > 0) ? vmax : -vmax;
+        }
     }
+
     particle.setVelocity(newVelocity);
 }
 

@@ -113,42 +113,4 @@ glm::vec3 OrbitMechanics::calculateOrbitVelocity(float radius, float inclination
     return glm::vec3(vx, vy_rotated, vz_rotated);
 }
 
-Vector3 OrbitMechanics::calculateImpulseVector(const Vector3& pos, const Vector3& vel,
-                                              double magnitude, double planeChangeAngle)
-{
-    // Unit vectors for orbital frame
-    // Tangential = velocity direction
-    double v_mag = sqrt(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
-    Vector3 t_hat = {vel.x/v_mag, vel.y/v_mag, vel.z/v_mag};
-
-    // Radial = position direction
-    double r_mag = sqrt(pos.x*pos.x + pos.y*pos.y + pos.z*pos.z);
-    Vector3 r_hat = {pos.x/r_mag, pos.y/r_mag, pos.z/r_mag};
-
-    Vector3 n_hat = {
-        r_hat.y * t_hat.z - r_hat.z * t_hat.y,
-        r_hat.z * t_hat.x - r_hat.x * t_hat.z,
-        r_hat.x * t_hat.y - r_hat.y * t_hat.x
-    };
-
-    // Normal vector
-    double n_mag = sqrt(n_hat.x*n_hat.x + n_hat.y*n_hat.y + n_hat.z*n_hat.z);
-    n_hat.x /= n_mag;
-    n_hat.y /= n_mag;
-    n_hat.z /= n_mag;
-
-    // Impulse components
-    double tangential_component = magnitude * cos(planeChangeAngle);
-    double normal_component = magnitude * sin(planeChangeAngle);
-
-    // Impulse vector = tangential component + normal component
-    Vector3 impulse = {
-        t_hat.x * tangential_component + n_hat.x * normal_component,
-        t_hat.y * tangential_component + n_hat.y * normal_component,
-        t_hat.z * tangential_component + n_hat.z * normal_component
-    };
-
-    return impulse;
-}
-
 } // namespace Physics

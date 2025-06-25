@@ -117,7 +117,7 @@ double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>
 
         double violation = checkConstraints(x);
         if (violation > 1e-4) {
-            return deltaV + 1e3 * violation;
+            return deltaV + violation;
         }
 
         return deltaV;
@@ -130,13 +130,12 @@ double OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double
     double totalViolation = 0.0;
     double relaxationFactor = getRelaxationFactor();
     
-    // Basic parameter bounds
-    if (x[0] < 0.0) totalViolation += std::abs(x[0]) * 0.01;
-    if (x[0] > 2*M_PI) totalViolation += (x[0] - 2*M_PI) * 0.01;
-    if (x[1] < 0.0) totalViolation += std::abs(x[1]) * 0.01;
-    if (x[1] > 2*M_PI) totalViolation += (x[1] - 2*M_PI) * 0.01;
-    if (x[2] <= 0.0) totalViolation += (0.1 - x[2]) * 0.1;
-    
+    if (x[0] < 0.0) totalViolation += std::abs(x[0]) * 0.001;
+    if (x[0] > 2*M_PI) totalViolation += (x[0] - 2*M_PI) * 0.001;
+    if (x[1] < 0.0) totalViolation += std::abs(x[1]) * 0.001;
+    if (x[1] > 2*M_PI) totalViolation += (x[1] - 2*M_PI) * 0.001;
+    if (x[2] <= 0.0) totalViolation += (0.1 - x[2]) * 0.01;
+
     try {
         // Calculate positions
         Physics::Vector3 r_init = Physics::OrbitMechanics::calculatePosition3D(
@@ -147,16 +146,15 @@ double OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double
         double r_init_mag = r_init.magnitude();
         double r_final_mag = r_final.magnitude();
         
-        // Very generous transfer time bounds
         double semi_major_avg = (r_init_mag + r_final_mag) / 2.0;
-        double min_transfer_time = 0.1 * M_PI * sqrt(pow(semi_major_avg, 3) / _MU);
-        double max_transfer_time = 20.0 * M_PI * sqrt(pow(semi_major_avg, 3) / _MU);
+        double min_transfer_time = 0.05 * M_PI * sqrt(pow(semi_major_avg, 3) / _MU);
+        double max_transfer_time = 50.0 * M_PI * sqrt(pow(semi_major_avg, 3) / _MU);
         
         if (x[2] < min_transfer_time * relaxationFactor) {
-            totalViolation += (min_transfer_time * relaxationFactor - x[2]) * 0.001;
+            totalViolation += (min_transfer_time * relaxationFactor - x[2]) * 0.0001;
         }
         if (x[2] > max_transfer_time / relaxationFactor) {
-            totalViolation += (x[2] - max_transfer_time / relaxationFactor) * 0.0001;
+            totalViolation += (x[2] - max_transfer_time / relaxationFactor) * 0.00001;
         }
         
         // Angular separation guidance
@@ -167,10 +165,10 @@ double OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double
         
         // Very gentle guidance away from collinear cases
         if (angular_separation < 5.0) {
-            totalViolation += (5.0 - angular_separation) * 0.1 * relaxationFactor;
+            totalViolation += (5.0 - angular_separation) * 0.01 * relaxationFactor;
         }
         if (angular_separation > 175.0) {
-            totalViolation += (angular_separation - 175.0) * 0.05 * relaxationFactor;
+            totalViolation += (angular_separation - 175.0) * 0.005 * relaxationFactor;
         }
         
         // Lambert solver
@@ -182,21 +180,15 @@ double OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double
         double v1_mag = v1.magnitude();
         double v2_mag = v2.magnitude();
         
-        // Very lenient velocity checks
-        if (v1_mag < 1e-10 || v2_mag < 1e-10) {
-            totalViolation += 1.0 * relaxationFactor;
-            return totalViolation;
-        }
-        
-        if (v1_mag > 50.0 || v2_mag > 50.0) {  // Much higher threshold
+        if (v1_mag < 1e-12 || v2_mag < 1e-12) {
             totalViolation += 0.1 * relaxationFactor;
+            return totalViolation;
         }
         
-        // Energy check
+        // Energy constraint - prevent escape
         double specific_energy = 0.5 * v1_mag * v1_mag - _MU / r_init_mag;
-        if (specific_energy >= 0) {
-            totalViolation += 2.0 * relaxationFactor;  // Much lower penalty
-            return totalViolation;
+        if (specific_energy >= -0.01) {  // Bound orbit requirement
+            totalViolation += std::abs(specific_energy + 0.01) * 0.1 * relaxationFactor;
         }
         
         Physics::Vector3 h_transfer = r_init.cross(v1);
@@ -220,14 +212,14 @@ double OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double
             }
         }
         
-        double transfer_semi_major = -_MU / (2.0 * specific_energy);
         double transfer_eccentricity = std::sqrt(1.0 + 2.0 * specific_energy * h_mag * h_mag / (_MU * _MU));
         
-        // Very lenient eccentricity constraint
-        if (transfer_eccentricity > 0.98) {
-            totalViolation += (transfer_eccentricity - 0.98) * 1.0 * relaxationFactor;
+        if (transfer_eccentricity > 0.85 * relaxationFactor) {
+            totalViolation += (transfer_eccentricity - 0.85 * relaxationFactor) * 2.0;
         }
         
+        double transfer_semi_major = -_MU / (2.0 * specific_energy);
+
         // Basic safety constraints (very lenient)
         double transfer_periapsis = transfer_semi_major * (1.0 - transfer_eccentricity);
         double transfer_apoapsis = transfer_semi_major * (1.0 + transfer_eccentricity);
@@ -247,7 +239,7 @@ double OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double
         }
         
     } catch (...) {
-        totalViolation += 5.0 * relaxationFactor;  // Much lower exception penalty
+        totalViolation += 1 * relaxationFactor;
     }
     
     return totalViolation;
@@ -522,7 +514,14 @@ std::map<std::string, double> OrbitTransferObjective<T, Fun>::getTransferDetails
 
 template <typename T, typename Fun>
 double OrbitTransferObjective<T, Fun>::getRelaxationFactor() const {
-    return 2.0 - (static_cast<double>(PSOGlobals::currentIteration) / PSOGlobals::maxIterations);
-}
+    double progress = static_cast<double>(PSOGlobals::currentIteration) / PSOGlobals::maxIterations;
+    
+    if (progress < 0.3) {
+        return 1.0 + 0.3 * progress / 0.3;
+    } else if (progress < 0.7) {
+        return 1.3;
+    } else {
+        return 1.3 - 0.5 * (progress - 0.7) / 0.3;
+    }}
 
 template class OrbitTransferObjective<double, std::function<double(double*)>>;

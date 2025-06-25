@@ -8,16 +8,16 @@
 int main()
 {
     // Define PSO parameters
-    size_t numParticles = 1500;
+    size_t numParticles = 2000;
     size_t dimension = 3;
         // x[0]: departure true anomaly (0 to 2π)
         // x[1]: arrival true anomaly (0 to 2π)
         // x[2]: time of flight (0 to 1)
     size_t maxIterations = 10000;
     double tolerance = 1e-2;
-    double inertiaWeight = 0.9;
-    double cognitiveWeight = 2.0;
-    double socialWeight = 2.0;
+    double inertiaWeight = 0.95;
+    double cognitiveWeight = 2.5;
+    double socialWeight = 1.5;
 
     OrbitTransferObjective<double, std::function<double(double*)>> objectiveFunction(
         constant::R1,

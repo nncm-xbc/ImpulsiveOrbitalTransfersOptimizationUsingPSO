@@ -93,10 +93,14 @@ void PSO<T, Fun>::updateWC(std::vector<T> GBPos_previous, size_t iter)
     // Linear decrease of inertia weight with iteration count
     T currentIteration = static_cast<T>(iter);
     T maxWeight = 0.9;
-    T minWeight = 0.4;
-    T inertiaWeight = maxWeight - ((maxWeight - minWeight) * currentIteration / _maxIterations);
+    T minWeight = 0.5;
+    T inertiaWeight = maxWeight - minWeight * (currentIteration / _maxIterations);
+    double c1 = 2.5 - 1.0 * (currentIteration / _maxIterations);  // Decrease cognitive
+    double c2 = 0.5 + 1.5 * (currentIteration / _maxIterations);  // Increase social
 
     swarm.setInertiaWeight(inertiaWeight);
+    swarm.setCognitiveWeight(c1);
+    swarm.setSocialWeight(c2);
 }
 
 template <typename T, typename Fun>

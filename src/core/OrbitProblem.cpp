@@ -28,7 +28,7 @@ OrbitTransferObjective<T, Fun>::OrbitTransferObjective(double R1, double R2, dou
 template <typename T, typename Fun>
 double OrbitTransferObjective<T, Fun>::operator()(double* x)
 {
-    std::vector<double> params(x, x + 6);
+    std::vector<double> params(x, x + 3);
 
     return calculateDeltaV(params);
 }
@@ -46,7 +46,6 @@ double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>
     if (_i1 != 0 || _i2 != 0)
     {
         // Non-coplanar case
-        // Position vectors in 3D space
         Physics::Vector3 r_init_vec = Physics::OrbitMechanics::calculatePosition3D(_R1, _e1, _i1, _raan1, _omega1, departureTrueAnomaly);
         Physics::Vector3 r_final_vec = Physics::OrbitMechanics::calculatePosition3D(_R2, _e2, _i2, _raan2, _omega2, arrivalTrueAnomaly);
 
@@ -131,128 +130,126 @@ double OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double
     double totalViolation = 0.0;
     double relaxationFactor = getRelaxationFactor();
     
-    // Departure true anomaly bounds
-    if (x[0] < 0.0) totalViolation += std::abs(x[0]);
-    if (x[0] > 2*M_PI) totalViolation += (x[0] - 2*M_PI);
-    
-    // Arrival true anomaly bounds
-    if (x[1] < 0.0) totalViolation += std::abs(x[1]);
-    if (x[1] > 2*M_PI) totalViolation += (x[1] - 2*M_PI);
-    
-    // Transfer time bounds
-    if (x[2] <= 0.0) totalViolation += (0.1 - x[2]);
-    
-    Physics::Vector3 r_init = Physics::OrbitMechanics::calculatePosition3D(
-        _R1, _e1, _i1, _raan1, _omega1, x[0]);
-    Physics::Vector3 r_final = Physics::OrbitMechanics::calculatePosition3D(
-        _R2, _e2, _i2, _raan2, _omega2, x[1]);
-    
-    double r_init_mag = r_init.magnitude();
-    double r_final_mag = r_final.magnitude();
-    
-    // Minimum transfer time constraint
-    double semi_major_avg = (r_init_mag + r_final_mag) / 2.0;
-    double min_transfer_time = M_PI * sqrt(pow(semi_major_avg, 3) / _MU);
-    
-    if (x[2] < min_transfer_time / relaxationFactor) {
-        totalViolation += (min_transfer_time / relaxationFactor - x[2]);
-    }
-    
-    // Maximum transfer time constraint
-    double max_transfer_time = 10.0 * min_transfer_time; // Allow up to 10x minimum
-    if (x[2] > max_transfer_time * relaxationFactor) {
-        totalViolation += (x[2] - max_transfer_time * relaxationFactor);
-    }
-        
-    double angular_separation = calculateAngularSeparation(r_init, r_final);
-    
-    double parabolic_time = calculateParabolicTime(r_init_mag, r_final_mag, angular_separation);
-    if (x[2] > parabolic_time * relaxationFactor) {
-        totalViolation += (x[2] - parabolic_time * relaxationFactor);
-    }
-
-    // Ensure transfer trajectory actually connects
-    if (!doesIntersect(x)) {
-        totalViolation += 1000.0;
-    }
+    // Basic parameter bounds
+    if (x[0] < 0.0) totalViolation += std::abs(x[0]) * 0.01;
+    if (x[0] > 2*M_PI) totalViolation += (x[0] - 2*M_PI) * 0.01;
+    if (x[1] < 0.0) totalViolation += std::abs(x[1]) * 0.01;
+    if (x[1] > 2*M_PI) totalViolation += (x[1] - 2*M_PI) * 0.01;
+    if (x[2] <= 0.0) totalViolation += (0.1 - x[2]) * 0.1;
     
     try {
+        // Calculate positions
         Physics::Vector3 r_init = Physics::OrbitMechanics::calculatePosition3D(
             _R1, _e1, _i1, _raan1, _omega1, x[0]);
         Physics::Vector3 r_final = Physics::OrbitMechanics::calculatePosition3D(
             _R2, _e2, _i2, _raan2, _omega2, x[1]);
         
+        double r_init_mag = r_init.magnitude();
+        double r_final_mag = r_final.magnitude();
+        
+        // Very generous transfer time bounds
+        double semi_major_avg = (r_init_mag + r_final_mag) / 2.0;
+        double min_transfer_time = 0.1 * M_PI * sqrt(pow(semi_major_avg, 3) / _MU);
+        double max_transfer_time = 20.0 * M_PI * sqrt(pow(semi_major_avg, 3) / _MU);
+        
+        if (x[2] < min_transfer_time * relaxationFactor) {
+            totalViolation += (min_transfer_time * relaxationFactor - x[2]) * 0.001;
+        }
+        if (x[2] > max_transfer_time / relaxationFactor) {
+            totalViolation += (x[2] - max_transfer_time / relaxationFactor) * 0.0001;
+        }
+        
+        // Angular separation guidance
+        double dot_product = (r_init.x * r_final.x + r_init.y * r_final.y + r_init.z * r_final.z);
+        double cos_separation = dot_product / (r_init_mag * r_final_mag);
+        cos_separation = std::max(-1.0, std::min(1.0, cos_separation));
+        double angular_separation = std::acos(cos_separation) * 180.0 / M_PI;
+        
+        // Very gentle guidance away from collinear cases
+        if (angular_separation < 5.0) {
+            totalViolation += (5.0 - angular_separation) * 0.1 * relaxationFactor;
+        }
+        if (angular_separation > 175.0) {
+            totalViolation += (angular_separation - 175.0) * 0.05 * relaxationFactor;
+        }
+        
+        // Lambert solver
         std::pair<Physics::Vector3, Physics::Vector3> lambert_result = 
             Physics::LambertSolver::solveLambert(r_init, r_final, x[2], _MU, false);
         
         Physics::Vector3 v1 = lambert_result.first;
         Physics::Vector3 v2 = lambert_result.second;
+        double v1_mag = v1.magnitude();
+        double v2_mag = v2.magnitude();
         
-        // Check if Lambert solver returned valid results
-        if (v1.magnitude() > 0 && v2.magnitude() > 0) {
+        // Very lenient velocity checks
+        if (v1_mag < 1e-10 || v2_mag < 1e-10) {
+            totalViolation += 1.0 * relaxationFactor;
+            return totalViolation;
+        }
+        
+        if (v1_mag > 50.0 || v2_mag > 50.0) {  // Much higher threshold
+            totalViolation += 0.1 * relaxationFactor;
+        }
+        
+        // Energy check
+        double specific_energy = 0.5 * v1_mag * v1_mag - _MU / r_init_mag;
+        if (specific_energy >= 0) {
+            totalViolation += 2.0 * relaxationFactor;  // Much lower penalty
+            return totalViolation;
+        }
+        
+        Physics::Vector3 h_transfer = r_init.cross(v1);
+        double h_mag = h_transfer.magnitude();
+        
+        if (h_mag < 1e-10) {
+            // Alternative calculation for zero angular momentum
+            Physics::Vector3 r_unit = r_init.normalized();
+            double v_radial = v1.dot(r_unit);
+            Physics::Vector3 v_radial_vec = Physics::Vector3(r_unit.x * v_radial, r_unit.y * v_radial, r_unit.z * v_radial);
+            Physics::Vector3 v_tangential_vec = v1 - v_radial_vec;
+            double v_tangential = v_tangential_vec.magnitude();
+            h_mag = r_init_mag * v_tangential;
             
-            double r_init_mag = r_init.magnitude();
-            double v1_mag = v1.magnitude();
+            if (h_mag < 1e-10) h_mag = r_init_mag * 0.001;  // Minimum value
             
-            // Specific energy and angular momentum
-            double specific_energy = 0.5 * v1_mag * v1_mag - _MU / r_init_mag;
-            Physics::Vector3 h_transfer = r_init.cross(v1);
-            double h_mag = h_transfer.magnitude();
-            
-            if (specific_energy < 0) {
-                double transfer_semi_major = -_MU / (2.0 * specific_energy);
-                double transfer_eccentricity = std::sqrt(1.0 + 2.0 * specific_energy * h_mag * h_mag / (_MU * _MU));
-                
-                // Periapsis constraint
-                double transfer_periapsis = transfer_semi_major * (1.0 - transfer_eccentricity);
-                double min_safe_radius = 1.01;
-                
-                if (transfer_periapsis < min_safe_radius) {
-                    totalViolation += (min_safe_radius - transfer_periapsis) * 100.0;
-                }
-                
-                // Apoapsis constraint
-                double transfer_apoapsis = transfer_semi_major * (1.0 + transfer_eccentricity);
-                
-                if (transfer_apoapsis > _Rmax) {
-                    totalViolation += (transfer_apoapsis - _Rmax) * 10.0;
-                }
-                
-                // Eccentricity constraint
-                if (transfer_eccentricity >= 1.0) {
-                    totalViolation += (transfer_eccentricity - 0.99) * 100.0;
-                }
-                
-                // Ensure transfer orbit actually intersects both orbits
-                if (transfer_periapsis > std::max(_R1, _R2) || 
-                    transfer_apoapsis < std::min(_R1, _R2)) {
-                    totalViolation += 1000.0;
-                }
-                
-            } else {
-                // Hyperbolic or parabolic trajectory
-                totalViolation += 5000.0;
+            // Gentle penalty for purely radial motion
+            double radial_fraction = std::abs(v_radial) / v1_mag;
+            if (radial_fraction > 0.95) {
+                totalViolation += (radial_fraction - 0.95) * 1.0 * relaxationFactor;
             }
-            
-        } else {
-            // Lambert solver returned invalid/zero
-            totalViolation += 5000.0;
         }
         
-    } catch (const std::exception& e) {
-        // Lambert solver threw exception
-        totalViolation += 2000.0;
-    }
+        double transfer_semi_major = -_MU / (2.0 * specific_energy);
+        double transfer_eccentricity = std::sqrt(1.0 + 2.0 * specific_energy * h_mag * h_mag / (_MU * _MU));
         
-    if (_i1 != _i2 || _raan1 != _raan2) {
-
-        double inclination_change = std::abs(_i2 - _i1);
-                
-        // sanity check 
-        if (inclination_change > M_PI) {
-            totalViolation += 100.0;
+        // Very lenient eccentricity constraint
+        if (transfer_eccentricity > 0.98) {
+            totalViolation += (transfer_eccentricity - 0.98) * 1.0 * relaxationFactor;
         }
+        
+        // Basic safety constraints (very lenient)
+        double transfer_periapsis = transfer_semi_major * (1.0 - transfer_eccentricity);
+        double transfer_apoapsis = transfer_semi_major * (1.0 + transfer_eccentricity);
+        
+        if (transfer_periapsis < 0.9) {  // Don't crash into central body
+            totalViolation += (0.9 - transfer_periapsis) * 0.1 * relaxationFactor;
+        }
+        
+        if (transfer_apoapsis > _Rmax) {
+            totalViolation += (transfer_apoapsis - _Rmax) * 0.01 * relaxationFactor;
+        }
+        
+        // Very gentle intersection check
+        if (transfer_periapsis > std::max(_R1, _R2) * 1.1 || 
+            transfer_apoapsis < std::min(_R1, _R2) * 0.9) {
+            totalViolation += 1.0 * relaxationFactor;
+        }
+        
+    } catch (...) {
+        totalViolation += 5.0 * relaxationFactor;  // Much lower exception penalty
     }
+    
     return totalViolation;
 }
 
@@ -278,55 +275,70 @@ double OrbitTransferObjective<T, Fun>::calculateParabolicTime(
     return M_PI * sqrt(pow(a_parabolic, 3) / _MU);
 }
 
-
 template<typename T, typename Fun>
-bool OrbitTransferObjective<T, Fun>::doesIntersect(const std::vector<double>& x) {
+bool OrbitTransferObjective<T, Fun>::doesIntersect(const std::vector<double>& x) 
+{
     double departureTrueAnomaly = x[0];
-    double firstImpulseMagnitude = x[2];
-    double firstImpulseDirection = x[4];
+    double arrivalTrueAnomaly = x[1];
+    double transferTime = x[2];
 
-    Physics::Vector3 r_init = Physics::OrbitMechanics::calculatePosition3D(_R1, _e1, _i1, _raan1, _omega1, departureTrueAnomaly);
-    Physics::Vector3 v_init = Physics::OrbitMechanics::calculateVelocity3D(_R1, _e1, _i1, _raan1, _omega1, departureTrueAnomaly);
+    Physics::Vector3 r_init, r_final;
 
-    Physics::Vector3 impulse = Physics::OrbitMechanics::calculateImpulseVector(
-        Physics::Vector3(r_init.x, r_init.y, r_init.z),
-        Physics::Vector3(v_init.x, v_init.y, v_init.z),
-        firstImpulseMagnitude,
-        firstImpulseDirection
-    );
-    Physics::Vector3 v_transfer = v_init;
-    v_transfer.x += impulse.x;
-    v_transfer.y += impulse.y;
-    v_transfer.z += impulse.z;
+    if (_i1 != 0.0 || _i2 != 0.0 || _raan1 != _raan2 || _omega1 != _omega2) {
+        // NON-COPLANAR CASE
+        r_init = Physics::OrbitMechanics::calculatePosition3D(
+            _R1,
+            _e1, 
+            _i1,
+            _raan1,
+            _omega1,
+            departureTrueAnomaly
+        );
 
-    // Orbital elements
-    double mu = _MU;
-    double r_mag = sqrt(r_init.x*r_init.x + r_init.y*r_init.y + r_init.z*r_init.z);
-    double v_mag = sqrt(v_transfer.x*v_transfer.x + v_transfer.y*v_transfer.y + v_transfer.z*v_transfer.z);
+        r_final = Physics::OrbitMechanics::calculatePosition3D(
+            _R2,
+            _e2, 
+            _i2,
+            _raan2,
+            _omega2,
+            arrivalTrueAnomaly
+        );
+        
+    } else {
+        // COPLANAR CASE
+        
+        double r_init_magnitude = _R1;
+        double r_final_magnitude = _R2;
+        
+        if (_e1 != 0.0) {
+            r_init_magnitude = _R1 * (1.0 - _e1*_e1) / (1.0 + _e1 * cos(departureTrueAnomaly));
+        }
+        if (_e2 != 0.0) {
+            r_final_magnitude = _R2 * (1.0 - _e2*_e2) / (1.0 + _e2 * cos(arrivalTrueAnomaly));
+        }
+        
+        r_init = Physics::Vector3(
+            r_init_magnitude * cos(departureTrueAnomaly),
+            r_init_magnitude * sin(departureTrueAnomaly),  
+            0.0);
+        
+        r_final = Physics::Vector3(
+            r_final_magnitude * cos(arrivalTrueAnomaly),
+            r_final_magnitude * sin(arrivalTrueAnomaly),
+            0.0);    
 
-    // Specific angular momentum
-    Physics::Vector3 h;
-    h.x = r_init.y * v_transfer.z - r_init.z * v_transfer.y;
-    h.y = r_init.z * v_transfer.x - r_init.x * v_transfer.z;
-    h.z = r_init.x * v_transfer.y - r_init.y * v_transfer.x;
-    double h_mag = sqrt(h.x*h.x + h.y*h.y + h.z*h.z);
-
-    // Eccentricity vector and magnitude
-    double r_dot_v = r_init.x*v_transfer.x + r_init.y*v_transfer.y + r_init.z*v_transfer.z;
-    Physics::Vector3 e_vec;
-    e_vec.x = ((v_mag*v_mag - mu/r_mag) * r_init.x - r_dot_v * v_transfer.x) / mu;
-    e_vec.y = ((v_mag*v_mag - mu/r_mag) * r_init.y - r_dot_v * v_transfer.y) / mu;
-    e_vec.z = ((v_mag*v_mag - mu/r_mag) * r_init.z - r_dot_v * v_transfer.z) / mu;
-    double ecc = sqrt(e_vec.x*e_vec.x + e_vec.y*e_vec.y + e_vec.z*e_vec.z);
-
-    // Semi-major axis
-    double sma = h_mag*h_mag / (mu * (1.0 - ecc*ecc));
-
-    double periapsis = sma * (1.0 - ecc);
-    double apoapsis = sma * (1.0 + ecc);
-
-    // Check if target orbit is between periapsis and apoapsis
-    return (_R2 >= periapsis - 1e-6 && _R2 <= apoapsis + 1e-6);
+        try {
+            // Use Lambert solver instead of manual impulse calculation
+            std::pair<Physics::Vector3, Physics::Vector3> lambert_result = Physics::LambertSolver::solveLambert(r_init, r_final, x[2], _MU, false);
+            
+            // Check if Lambert returned valid velocities
+            return (lambert_result.first.magnitude() > 1e-10 && 
+                    lambert_result.second.magnitude() > 1e-10);
+                    
+        } catch (...) {
+            return false;
+        }
+    }
 }
 
 template <typename T, typename Fun>

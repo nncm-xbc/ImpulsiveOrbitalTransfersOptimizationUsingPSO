@@ -11,7 +11,7 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 # Set build type specific flags
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -pedantic -O0 -g")
+    set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -pedantic -O0 -g -march=native")
     message(STATUS "Debug mode: Optimizations disabled, debug symbols enabled")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -flto -funroll-loops -march=native -Wall")

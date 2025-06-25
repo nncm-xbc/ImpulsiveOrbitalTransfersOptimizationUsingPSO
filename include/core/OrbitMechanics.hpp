@@ -211,21 +211,6 @@ public:
      * visualization components.
      */
     static glm::vec3 calculateOrbitVelocity(float radius, float inclination, float true_anomaly);
-
-    /**
-     * @brief Calculate impulse vector for orbital maneuvers
-     * @param pos Position vector where impulse is applied (DU)
-     * @param vel Velocity vector before impulse (DU/TU)
-     * @param magnitude Impulse magnitude (DU/TU)
-     * @param planeChangeAngle Angle for plane change component (radians)
-     * @return 3D impulse vector (DU/TU)
-     *
-     * Computes the impulse vector for orbital maneuvers, including
-     * both tangential (for orbit shaping) and normal (for plane change)
-     * components. Uses local orbital coordinate frame.
-     */
-    static Vector3 calculateImpulseVector(const Vector3& pos, const Vector3& vel,
-                                         double magnitude, double planeChangeAngle);
 };
 
 } // namespace Physics

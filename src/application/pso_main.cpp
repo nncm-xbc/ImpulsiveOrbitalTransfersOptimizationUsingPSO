@@ -12,7 +12,7 @@ int main()
     size_t dimension = 3;
         // x[0]: departure true anomaly (0 to 2π)
         // x[1]: arrival true anomaly (0 to 2π)
-        // x[5]: time of flight (0 to 1)
+        // x[2]: time of flight (0 to 1)
     size_t maxIterations = 10000;
     double tolerance = 1e-2;
     double inertiaWeight = 0.9;

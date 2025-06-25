@@ -97,26 +97,6 @@ class OrbitTransferObjective
         double calculateDeltaV(const std::vector<double>& x);
 
         /**
-         * @brief Compute transfer orbit periapsis
-         * @param x Vector of optimization parameters
-         * @return Periapsis distance (DU)
-         *
-         * Used for constraint checking to ensure transfer orbit doesn't
-         * intersect the central body or violate altitude constraints.
-         */
-        double computePeriapsis(const std::vector<T>& x);
-
-        /**
-         * @brief Compute transfer orbit apoapsis
-         * @param x Vector of optimization parameters
-         * @return Apoapsis distance (DU)
-         *
-         * Used for constraint checking to ensure transfer orbit doesn't
-         * exceed maximum altitude constraints.
-         */
-        double computeApoapsis(const std::vector<T>& x);
-
-        /**
          * @brief Check all trajectory constraints
          * @param x Vector of optimization parameters
          * @return Total constraint violation (0 = feasible)

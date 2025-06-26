@@ -75,7 +75,7 @@ double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>
 
         double violation = checkConstraints(x);
         if (violation > 1e-4) {
-            return deltaV + 1e3 * violation;
+            return deltaV + violation;
         }
 
         return deltaV;
@@ -114,11 +114,12 @@ double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>
         double deltaV2 = (v_final_vec - v_trans_arr).magnitude();
 
         deltaV = deltaV1 + deltaV2;
-
+        
         double violation = checkConstraints(x);
         if (violation > 1e-4) {
             return deltaV + violation;
         }
+        
 
         return deltaV;
     }

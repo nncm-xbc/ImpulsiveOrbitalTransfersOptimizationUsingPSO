@@ -38,10 +38,10 @@ int main()
     lowerBounds[1] = 0.0;
     upperBounds[1] = 2*M_PI;
 
-    // Transfer time bounds (min -> 1/4 of orbital period at avg radius)
+    // Transfer time bounds
     double avg_orbit_period = 2*M_PI * std::sqrt(pow((constant::R1 + constant::R2)/2, 3)/constant::MU);
-    double minTransferTime = 0.25 * avg_orbit_period;
-    double maxTransferTime = 2*M_PI * std::sqrt(pow((constant::R1 + constant::R2)/2, 3)/constant::MU);
+    double minTransferTime = 0.1 * avg_orbit_period;
+    double maxTransferTime = 10.0 * avg_orbit_period;
 
     lowerBounds[2] = minTransferTime;
     upperBounds[2] = maxTransferTime;

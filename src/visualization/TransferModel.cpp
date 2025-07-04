@@ -82,10 +82,6 @@ void TransferModel::generateTransferTrajectory() {
     transfer_points_.clear();
     complete_ellipse_points_.clear();
 
-    // ============================================
-    // COMMON CALCULATIONS FOR BOTH CASES
-    // ============================================
-
     // Position vectors at departure and arrival
     glm::vec3 r0 = Physics::OrbitMechanics::calculateOrbitPosition(
         initial_radius_, initial_inclination_, initial_true_anomaly_);

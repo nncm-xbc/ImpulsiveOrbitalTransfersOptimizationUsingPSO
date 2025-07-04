@@ -10,6 +10,7 @@
 #include <sstream>
 
 #include "core/OrbitMechanics.hpp"
+#include "core/Constants.hpp"
 #include "visualization/OrbitModel.hpp"
 #include "visualization/Shader.hpp"
 #include "visualization/Camera.hpp"
@@ -92,6 +93,13 @@ int main(int argc, char* argv[]) {
     glViewport(0, 0, width, height);
 
     PSOOrbitTransferResult psoResult;
+
+    double initial_radius_DU = psoResult.initial_radius / constant::DU;
+    double target_radius_DU = psoResult.target_radius / constant::DU;
+
+    psoResult.initial_radius = initial_radius_DU;
+    psoResult.target_radius = target_radius_DU;
+
     bool usePSOResults = false;
     bool show_complete_ellipse = false;
 
@@ -118,7 +126,7 @@ int main(int argc, char* argv[]) {
     }
 
     Camera camera;
-    camera.setZoom(14000.0f); // Initial zoom level
+    camera.setZoom(50000000.0f); // Initial zoom level
     camera.setPosition(glm::vec3(0.0f, 0.0f, 0.0f)); // Initial camera position
     Animation animation(5.0f);
 
@@ -177,7 +185,6 @@ int main(int argc, char* argv[]) {
             psoResult.target_radius, psoResult.target_inclination,
             psoResult.initial_eccentricity, psoResult.target_eccentricity,
             psoResult.initial_true_anomaly, psoResult.final_true_anomaly,
-            //{0.5, 0.5} // TO REMOVE
             psoResult.delta_v_magnitudes, psoResult.plane_change
         );
 

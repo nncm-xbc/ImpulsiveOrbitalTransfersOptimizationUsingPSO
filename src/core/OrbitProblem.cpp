@@ -37,121 +37,99 @@ double OrbitTransferObjective<T, Fun>::operator()(double* x)
 template <typename T, typename Fun>
 double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>& x)
 {
-    double deltaV = 0.0;
+    try {
+        double deltaV = 0.0;
 
-    double departureTrueAnomaly = x[0];
-    double arrivalTrueAnomaly = x[1];
-    double transferTime = x[2];
+        double departureTrueAnomaly = x[0];
+        double arrivalTrueAnomaly = x[1];
+        double transferTime = x[2];
 
-    if (_i1 != 0.0 || _i2 != 0.0)
-    {
-        // Non-coplanar case
-        Physics::Vector3 r_init_vec = Physics::OrbitMechanics::calculatePosition3D(_R1, _e1, _i1, _raan1, _omega1, departureTrueAnomaly);
-        Physics::Vector3 r_final_vec = Physics::OrbitMechanics::calculatePosition3D(_R2, _e2, _i2, _raan2, _omega2, arrivalTrueAnomaly);
+        if (_i1 != 0.0 || _i2 != 0.0)
+        {
+            // Non-coplanar case
+            Physics::Vector3 r_init_vec = Physics::OrbitMechanics::calculatePosition3D(_R1, _e1, _i1, _raan1, _omega1, departureTrueAnomaly);
+            Physics::Vector3 r_final_vec = Physics::OrbitMechanics::calculatePosition3D(_R2, _e2, _i2, _raan2, _omega2, arrivalTrueAnomaly);
 
-        Physics::Vector3 v_init_vec = Physics::OrbitMechanics::calculateVelocity3D(_R1, _e1, _i1, _raan1, _omega1, departureTrueAnomaly);
-        Physics::Vector3 v_final_vec = Physics::OrbitMechanics::calculateVelocity3D(_R2, _e2, _i2, _raan2, _omega2, arrivalTrueAnomaly);
+            Physics::Vector3 v_init_vec = Physics::OrbitMechanics::calculateVelocity3D(_R1, _e1, _i1, _raan1, _omega1, departureTrueAnomaly);
+            Physics::Vector3 v_final_vec = Physics::OrbitMechanics::calculateVelocity3D(_R2, _e2, _i2, _raan2, _omega2, arrivalTrueAnomaly);
 
-        // Solve for transfer orbit velocities
-        std::pair<Physics::Vector3, Physics::Vector3> lambert_result = Physics::LambertSolver::solveLambert(
-            r_init_vec,
-            r_final_vec,
-            transferTime,
-            _MU,
-            false
-        );
+            // Solve for transfer orbit velocities
+            std::pair<Physics::Vector3, Physics::Vector3> lambert_result = Physics::LambertSolver::solveLambert(
+                r_init_vec,
+                r_final_vec,
+                transferTime,
+                _MU,
+                false
+            );
 
-        Physics::Vector3 v_trans_dep = lambert_result.first;
-        Physics::Vector3 v_trans_arr = lambert_result.second;
+            Physics::Vector3 v_trans_dep = lambert_result.first;
+            Physics::Vector3 v_trans_arr = lambert_result.second;
 
-        // Impulse vectors and magnitudes
-        Physics::Vector3 delta_v1 = v_trans_dep - v_init_vec;
-        Physics::Vector3 delta_v2 = v_final_vec - v_trans_arr;
+            // Impulse vectors and magnitudes
+            Physics::Vector3 delta_v1 = v_trans_dep - v_init_vec;
+            Physics::Vector3 delta_v2 = v_final_vec - v_trans_arr;
 
-        double deltaV1 = delta_v1.magnitude();
-        double deltaV2 = delta_v2.magnitude();
+            double deltaV1 = delta_v1.magnitude();
+            double deltaV2 = delta_v2.magnitude();
 
-        deltaV = deltaV1 + deltaV2;
+            deltaV = deltaV1 + deltaV2;
 
-        double violation = checkConstraints(x);
-        if (violation > 1e-4) {
-            return deltaV + violation;
+            if (std::isnan(deltaV) || std::isinf(deltaV) || deltaV < 0.0) {
+                return 1000.0;  // Simple high penalty
+            }
+
+            double violation = checkConstraints(x);
+            if (violation > 1e-4) {
+                return deltaV + violation;
+            }
+
+            return deltaV;
+
+        } else {
+            // Coplanar case
+            double r_init = Physics::OrbitMechanics::calculateRadius(_R1, _e1, departureTrueAnomaly);
+            double r_init_x = r_init * std::cos(departureTrueAnomaly);
+            double r_init_y = r_init * std::sin(departureTrueAnomaly);
+
+            auto v_init = Physics::OrbitMechanics::calculateVelocity(_R1, _e1, departureTrueAnomaly);
+
+            // Arrival position
+            double r_final = Physics::OrbitMechanics::calculateRadius(_R2, _e2, arrivalTrueAnomaly);
+            double r_final_x = r_final * std::cos(arrivalTrueAnomaly);
+            double r_final_y = r_final * std::sin(arrivalTrueAnomaly);
+
+            std::pair<Physics::Vector3, Physics::Vector3> lambert_result = Physics::LambertSolver::solveLambert(
+                Physics::Vector3(r_init_x, r_init_y, 0),
+                Physics::Vector3(r_final_x, r_final_y, 0),
+                transferTime,
+                _MU,
+                false
+            );
+
+            Physics::Vector3 v_trans_dep = lambert_result.first;
+            Physics::Vector3 v_trans_arr = lambert_result.second;
+
+            auto v_target = Physics::OrbitMechanics::calculateVelocity(_R2, _e2, arrivalTrueAnomaly);
+
+            // delta-Vs
+            Physics::Vector3 v_init_vec(v_init.first, v_init.second, 0);
+            Physics::Vector3 v_final_vec(v_target.first, v_target.second, 0);
+
+            double deltaV1 = (v_trans_dep - v_init_vec).magnitude();
+            double deltaV2 = (v_final_vec - v_trans_arr).magnitude();
+
+            deltaV = deltaV1 + deltaV2;
+
+            double violation = checkConstraints(x);
+            if (violation > 1e-4) {
+                return deltaV + violation;
+            }
+
+            return deltaV;
         }
-
-        return deltaV;
-
-    } else {
-        // Coplanar case
-        double r_init = Physics::OrbitMechanics::calculateRadius(_R1, _e1, departureTrueAnomaly);
-        double r_init_x = r_init * std::cos(departureTrueAnomaly);
-        double r_init_y = r_init * std::sin(departureTrueAnomaly);
-
-        auto v_init = Physics::OrbitMechanics::calculateVelocity(_R1, _e1, departureTrueAnomaly);
-
-        // Arrival position
-        double r_final = Physics::OrbitMechanics::calculateRadius(_R2, _e2, arrivalTrueAnomaly);
-        double r_final_x = r_final * std::cos(arrivalTrueAnomaly);
-        double r_final_y = r_final * std::sin(arrivalTrueAnomaly);
-
-        std::pair<Physics::Vector3, Physics::Vector3> lambert_result = Physics::LambertSolver::solveLambert(
-            Physics::Vector3(r_init_x, r_init_y, 0),
-            Physics::Vector3(r_final_x, r_final_y, 0),
-            transferTime,
-            _MU,
-            false
-        );
-
-        Physics::Vector3 v_trans_dep = lambert_result.first;
-        Physics::Vector3 v_trans_arr = lambert_result.second;
-
-        auto v_target = Physics::OrbitMechanics::calculateVelocity(_R2, _e2, arrivalTrueAnomaly);
-
-        // delta-Vs
-        Physics::Vector3 v_init_vec(v_init.first, v_init.second, 0);
-        Physics::Vector3 v_final_vec(v_target.first, v_target.second, 0);
-
-        double deltaV1 = (v_trans_dep - v_init_vec).magnitude();
-        double deltaV2 = (v_final_vec - v_trans_arr).magnitude();
-
-        deltaV = deltaV1 + deltaV2;
-
-        double violation = checkConstraints(x);
-        if (violation > 1e-4) {
-            return deltaV + violation;
-        }
-
-
-        return deltaV;
+    }catch (const std::exception& e) {
+        return 1000.0;  // Simple penalty for any exception
     }
-}
-
-template <typename T, typename Fun>
-double OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double>& x)
-{
-    // TEMPORARILY DISABLE ALL CONSTRAINTS
-    return 0.0;  // This will tell us if constraints are the problem
-}
-
-template <typename T, typename Fun>
-double OrbitTransferObjective<T, Fun>::calculateAngularSeparation(
-    const Physics::Vector3& r1, const Physics::Vector3& r2)
-{
-    double dot_product = r1.dot(r2);
-    double r1_mag = r1.magnitude();
-    double r2_mag = r2.magnitude();
-
-    double cos_angle = dot_product / (r1_mag * r2_mag);
-    cos_angle = std::max(-1.0, std::min(1.0, cos_angle)); // Clamp to valid range
-
-    return std::acos(cos_angle);
-}
-
-template <typename T, typename Fun>
-double OrbitTransferObjective<T, Fun>::calculateParabolicTime(
-    double r1, double r2, double theta)
-{
-    double a_parabolic = (r1 + r2 + 2.0 * sqrt(r1 * r2) * cos(theta / 2.0)) / 4.0;
-    return M_PI * sqrt(pow(a_parabolic, 3) / _MU);
 }
 
 template <typename T, typename Fun>
@@ -344,5 +322,121 @@ double OrbitTransferObjective<T, Fun>::getRelaxationFactor() const {
     } else {
         return 1.3 - 0.5 * (progress - 0.7) / 0.3;
     }}
+
+template <typename T, typename Fun>
+double OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double>& x) {
+    double totalViolation = 0.0;
+
+    if (x.size() < 3) return 1000.0;  // Critical constraint
+
+    double departureTrueAnomaly = x[0];
+    double arrivalTrueAnomaly = x[1];
+    double transferTime = x[2];
+
+    // 1. True anomaly bounds [0, 2π]
+    if (departureTrueAnomaly < 0.0) {
+        totalViolation += std::abs(departureTrueAnomaly) * 10.0;
+    }
+    if (departureTrueAnomaly > 2*M_PI) {
+        totalViolation += (departureTrueAnomaly - 2*M_PI) * 10.0;
+    }
+
+    if (arrivalTrueAnomaly < 0.0) {
+        totalViolation += std::abs(arrivalTrueAnomaly) * 10.0;
+    }
+    if (arrivalTrueAnomaly > 2*M_PI) {
+        totalViolation += (arrivalTrueAnomaly - 2*M_PI) * 10.0;
+    }
+
+    // 2. Transfer time bounds
+    double minTransferTime = calculateMinimumTransferTime(departureTrueAnomaly, arrivalTrueAnomaly);
+    if (transferTime < minTransferTime) {
+        totalViolation += (minTransferTime - transferTime) * 50.0;  // High penalty for physics violations
+    }
+
+    if (transferTime > 20.0) {  // Maximum reasonable transfer time
+        totalViolation += (transferTime - 20.0) * 5.0;
+    }
+
+    // 3. Orbital intersection constraint (if orbits don't naturally intersect)
+    if (!orbitsIntersect()) {
+        // For non-intersecting orbits, check if transfer is geometrically feasible
+        double minRadius = std::min(_R1, _R2);
+        double maxRadius = std::max(_R1, _R2);
+
+        // Calculate transfer orbit parameters approximately
+        Physics::Vector3 r1 = Physics::OrbitMechanics::calculatePosition3D(
+            _R1, _e1, _i1, _raan1, _omega1, departureTrueAnomaly);
+        Physics::Vector3 r2 = Physics::OrbitMechanics::calculatePosition3D(
+            _R2, _e2, _i2, _raan2, _omega2, arrivalTrueAnomaly);
+
+        double r1_mag = r1.magnitude();
+        double r2_mag = r2.magnitude();
+
+        // Check if positions are reasonable for the given orbits
+        if (std::abs(r1_mag - _R1) > 0.1 * _R1) {  // Allow 10% deviation for elliptical orbits
+            totalViolation += std::abs(r1_mag - _R1) * 2.0;
+        }
+        if (std::abs(r2_mag - _R2) > 0.1 * _R2) {
+            totalViolation += std::abs(r2_mag - _R2) * 2.0;
+        }
+    }
+
+    // 4. Angular separation constraint (for very close true anomalies)
+    double angularSeparation = std::abs(arrivalTrueAnomaly - departureTrueAnomaly);
+    if (angularSeparation > M_PI) {
+        angularSeparation = 2*M_PI - angularSeparation;  // Take shorter path
+    }
+
+    if (angularSeparation < 0.1 && transferTime < 0.5) {  // Very small angle, very short time
+        totalViolation += (0.1 - angularSeparation) * 20.0;
+    }
+
+    return totalViolation;
+}
+
+// Helper function to calculate minimum physically possible transfer time
+template <typename T, typename Fun>
+double OrbitTransferObjective<T, Fun>::calculateMinimumTransferTime(
+    double theta1, double theta2) {
+
+    // Calculate positions
+    Physics::Vector3 r1 = Physics::OrbitMechanics::calculatePosition3D(
+        _R1, _e1, _i1, _raan1, _omega1, theta1);
+    Physics::Vector3 r2 = Physics::OrbitMechanics::calculatePosition3D(
+        _R2, _e2, _i2, _raan2, _omega2, theta2);
+
+    // Use parabolic transfer as minimum time estimate
+    double r1_mag = r1.magnitude();
+    double r2_mag = r2.magnitude();
+
+    // Angular separation between position vectors
+    double cos_angle = r1.dot(r2) / (r1_mag * r2_mag);
+    cos_angle = std::max(-1.0, std::min(1.0, cos_angle));  // Clamp to valid range
+    double transfer_angle = std::acos(cos_angle);
+
+    // Parabolic transfer time (minimum possible)
+    double chord = std::sqrt(r1_mag*r1_mag + r2_mag*r2_mag -
+                            2*r1_mag*r2_mag*std::cos(transfer_angle));
+    double s = (r1_mag + r2_mag + chord) / 2.0;
+    double a_parabolic = s / 2.0;
+
+    return M_PI * std::sqrt(a_parabolic*a_parabolic*a_parabolic / _MU);
+}
+
+// Check if orbits naturally intersect
+template <typename T, typename Fun>
+bool OrbitTransferObjective<T, Fun>::orbitsIntersect() {
+    // For circular orbits, they intersect if they're coplanar and radii are equal
+    if (_e1 == 0.0 && _e2 == 0.0) {
+        return (std::abs(_R1 - _R2) < 1e-6) &&
+               (std::abs(_i1 - _i2) < 1e-6) &&
+               (std::abs(_raan1 - _raan2) < 1e-6);
+    }
+
+    // For elliptical orbits, more complex intersection calculation needed
+    // For now, assume they don't naturally intersect if they have different elements
+    return false;
+}
 
 template class OrbitTransferObjective<double, std::function<double(double*)>>;

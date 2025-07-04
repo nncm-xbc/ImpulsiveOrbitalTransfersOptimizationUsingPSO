@@ -1,4 +1,5 @@
 #include "core/LambertSolver.hpp"
+#include "core/Constants.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -15,8 +16,15 @@ std::pair<Physics::Vector3, Physics::Vector3> LambertSolver::solveLambert(
     double mu,
     bool isLongWay)
 {
+
     Physics::Vector3 r1(r1_glm);
     Physics::Vector3 r2(r2_glm);
+
+    double min_tof = calculateMinimumTOF(r1, r2, isLongWay);
+
+    if (tof < min_tof * 0.9) {  // 10% tolerance
+        return std::make_pair(Physics::Vector3(0, 0, 0), Physics::Vector3(0, 0, 0));
+    }
 
     // Position magnitudes and unit vectors
     double r1_mag = r1.magnitude();
@@ -93,8 +101,8 @@ std::pair<Physics::Vector3, Physics::Vector3> LambertSolver::solveLambert(
                 }
                 sin_alpha = std::sin(alpha);
             }
-            
-            #pragma omp section 
+
+            #pragma omp section
             {
                 beta = 2.0 * std::asin(std::sqrt((s - chord) / (2.0 * a)));
                 sin_beta = std::sin(beta);
@@ -130,7 +138,7 @@ std::pair<Physics::Vector3, Physics::Vector3> LambertSolver::solveLambert(
             #ifdef USE_OPENMP
             #pragma omp parallel sections
             {
-                #pragma omp section 
+                #pragma omp section
                 {
                     f = 1.0 - h/a;
                     f_dot = -sqrt(mu/(a*a*a)) * h;
@@ -179,7 +187,7 @@ std::pair<Physics::Vector3, Physics::Vector3> LambertSolver::solveLambert(
         g = r1_mag * r2_mag * sin_theta / std::sqrt(mu * a);
         g_dot = 1.0 - r1_mag / a * (1.0 - std::cos(theta));
         f_dot = -std::sqrt(mu / a) * sin_theta / (r1_mag * r2_mag) * r2_mag;
-        #endif    
+        #endif
     }
 
     // Velocity vectors
@@ -187,8 +195,8 @@ std::pair<Physics::Vector3, Physics::Vector3> LambertSolver::solveLambert(
                         (r2.y - f * r1.y) / g,
                         (r2.z - f * r1.z) / g);
 
-    Physics::Vector3 v2(f_dot * r1.x + g_dot * v1.x, 
-                        f_dot * r1.y + g_dot * v1.y, 
+    Physics::Vector3 v2(f_dot * r1.x + g_dot * v1.x,
+                        f_dot * r1.y + g_dot * v1.y,
                         f_dot * r1.z + g_dot * v1.z);
 
     return std::make_pair(v1, v2);
@@ -227,7 +235,7 @@ std::optional<LambertSolver::Solution> LambertSolver::solve(
 
 double LambertSolver::calculateMinimumTOF(const glm::dvec3& r1,
                                          const glm::dvec3& r2,
-                                         bool long_way) const {
+                                         bool long_way) {
     double r1_mag = glm::length(r1);
     double r2_mag = glm::length(r2);
 
@@ -251,7 +259,7 @@ double LambertSolver::calculateMinimumTOF(const glm::dvec3& r1,
         alpha = 2 * M_PI - alpha;
     }
 
-    return std::sqrt(a_min * a_min * a_min / mu_) * (alpha - std::sin(alpha));
+    return std::sqrt(a_min * a_min * a_min / constant::MU) * (alpha - std::sin(alpha));
 }
 
 bool LambertSolver::validateSolution(const Solution& solution,

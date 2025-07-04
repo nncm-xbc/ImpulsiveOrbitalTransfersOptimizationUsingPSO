@@ -172,6 +172,8 @@ if(Catch2_FOUND)
         tests/test_OrbitMechanics.cpp
         tests/test_OrbitProblem.cpp
         tests/test_PSO.cpp
+        tests/test_LambertSolver.cpp
+        tests/test_swarm.cpp
     )
 
     add_executable(run_tests ${TEST_SOURCES})

@@ -26,23 +26,24 @@ Vector3 OrbitMechanics::calculateVelocity3D(double a, double e, double i, double
     const double sin_raan = sin(raan);
 
     const double p = a * (1 - e * e);
-    const double r = p / (1 + e * cos_nu);
     const double sqrt_mu_p = sqrt(constant::MU / p);
 
     // Velocity components in perifocal frame (radial and transverse)
     const double v_r = sqrt_mu_p * e * sin_nu;
     const double v_theta = sqrt_mu_p * (1 + e * cos_nu);
 
-    // Combined rotation matrix application (perifocal to inertial frame)
-    const double v_P = v_r * cos_nu - v_theta * sin_nu;
-    const double v_Q = v_r * sin_nu + v_theta * cos_nu;
-
     // Rotations
-    double v_x = (v_P * cos_omega - v_Q * sin_omega) * cos_raan -
-                 ((v_P * sin_omega + v_Q * cos_omega) * cos_i) * sin_raan;
-    double v_y = (v_P * cos_omega - v_Q * sin_omega) * sin_raan +
-                 ((v_P * sin_omega + v_Q * cos_omega) * cos_i) * cos_raan;
-    double v_z = (v_P * sin_omega + v_Q * cos_omega) * sin_i;
+    const double v_x_omega = v_r * cos_omega - v_theta * sin_omega;
+    const double v_y_omega = v_r * sin_omega + v_theta * cos_omega;
+    const double v_z_omega = 0.0;  // No z-component in perifocal frame
+
+    const double v_x_inc = v_x_omega;
+    const double v_y_inc = v_y_omega * cos_i - v_z_omega * sin_i;
+    const double v_z_inc = v_y_omega * sin_i + v_z_omega * cos_i;
+
+    const double v_x = v_x_inc * cos_raan - v_y_inc * sin_raan;
+    const double v_y = v_x_inc * sin_raan + v_y_inc * cos_raan;
+    const double v_z = v_z_inc;
 
     return Vector3(v_x, v_y, v_z);
 }
@@ -74,6 +75,10 @@ Vector3 OrbitMechanics::calculatePosition3D(double a, double e, double i, double
     double x = x_omega * cos_raan - y_omega * cos_i * sin_raan;
     double y = x_omega * sin_raan + y_omega * cos_i * cos_raan;
     double z = y_omega * sin_i;
+
+    if (std::abs(x) < 1e-14) x = 0.0;
+    if (std::abs(y) < 1e-14) y = 0.0;
+    if (std::abs(z) < 1e-14) z = 0.0;
 
     return Vector3(x, y, z);
 }

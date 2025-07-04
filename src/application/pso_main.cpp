@@ -17,11 +17,11 @@ int main()
         // x[0]: departure true anomaly (0 to 2π)
         // x[1]: arrival true anomaly (0 to 2π)
         // x[2]: time of flight (0 to 1)
-    size_t maxIterations = 1000;
+    size_t maxIterations = 5000;
     double tolerance = 1e-2;
-    double inertiaWeight = 0.6;
-    double cognitiveWeight = 1.8;
-    double socialWeight = 1.8;
+    double inertiaWeight = 0.8;
+    double cognitiveWeight = 1.5;
+    double socialWeight = 1.2;
 
     OrbitTransferObjective<double, std::function<double(double*)>> objectiveFunction(
         constant::R1,
@@ -43,12 +43,8 @@ int main()
     upperBounds[1] = 2*M_PI;
 
     // Transfer time bounds
-    double avg_orbit_period = 2*M_PI * std::sqrt(pow((constant::R1 + constant::R2)/2, 3)/constant::MU);
-    double minTransferTime = 0.3 * avg_orbit_period;
-    double maxTransferTime = 3.0 * avg_orbit_period;
-
     lowerBounds[2] = 0.1;
-    upperBounds[2] = 10.0;
+    upperBounds[2] = 100.0;
 
     // Create PSO instance
     PSO<double, std::function<double(double*)>> pso(
@@ -75,7 +71,7 @@ int main()
      double transferTime = bestSolution[2];
 
     // Results
-    //pso.printResults();
+    pso.printResults();
     pso.saveResults("../ressources/results.txt", objectiveFunction);
 
     // For coplanar

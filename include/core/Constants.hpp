@@ -34,7 +34,7 @@ namespace constant {
     /** @brief Initial orbit radius (normalized) */
     inline constexpr double R1 = 1.0;
     /** @brief Target orbit radius (normalized) */
-    inline constexpr double R2 = 1.0;
+    inline constexpr double R2 = 1.5;
 
     // Eccentricities
     /** @brief Initial orbit eccentricity */
@@ -44,8 +44,8 @@ namespace constant {
 
     // Inclinations
     /** @brief Initial orbit inclination (radians) */
-    inline constexpr double I1  = 0.497419;
-    //inline constexpr double I1 = 0.0;
+    //inline constexpr double I1  = 0.497419;
+    inline constexpr double I1 = 0.0;
     /** @brief Target orbit inclination (radians) */
     inline constexpr double I2 = 0.0;
 

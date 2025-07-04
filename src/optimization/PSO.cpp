@@ -34,7 +34,7 @@ template <typename T, typename Fun>
 void PSO<T, Fun>::solve()
 {
     swarm.init();
-    //swarm.info();
+    swarm.info();
 
     Logger conv_logger("../ressources/convergence_log.csv");
 

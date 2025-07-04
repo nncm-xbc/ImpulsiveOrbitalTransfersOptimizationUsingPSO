@@ -156,9 +156,9 @@ public:
      * provides a lower bound for any feasible transfer between the
      * given positions.
      */
-    double calculateMinimumTOF(const glm::dvec3& r1,
+    static double calculateMinimumTOF(const glm::dvec3& r1,
                               const glm::dvec3& r2,
-                              bool long_way = false) const;
+                              bool long_way = false);
 
     /**
      * @brief Validate a solution by checking conservation laws
@@ -178,7 +178,7 @@ public:
                          const glm::dvec3& r2,
                          double expected_tof) const;
 
-    
+
 private:
     /** @brief Gravitational parameter for the central body */
     double mu_;

@@ -1,12 +1,10 @@
-#define CATCH_CONFIG_MAIN
 #include <catch2/catch_all.hpp>
 #include "optimization/PSO.hpp"
 #include "core/OrbitProblem.hpp"
 #include <functional>
 #include <cmath>
-#include <iostream>
 
-// Simple test functions for PSO validation
+// Simple test function for PSO validation
 double sphereFunction(const std::vector<double>& x) {
     double sum = 0.0;
     for (double xi : x) {
@@ -26,254 +24,292 @@ double rosenbrockFunction(const std::vector<double>& x) {
     return sum;
 }
 
-TEST_CASE("PSO Basic Algorithm Tests", "[pso_basic]") {
+TEST_CASE("PSO - Basic Algorithm Functionality", "[pso][optimization]") {
 
     SECTION("PSO constructor and solve execution") {
-        // Create wrapper function that converts double* to vector<double>
         auto testFunc = [](double* x) -> double {
-            std::vector<double> vec(x, x + 2);  // Convert double* to vector
+            std::vector<double> vec(x, x + 2);
             return sphereFunction(vec);
-        };
-
-        size_t numParticles = 20;
-        size_t dimension = 2;
-        size_t maxIterations = 100;
-        double tolerance = 1e-6;
-        double inertiaWeight = 0.7;
-        double cognitiveWeight = 1.5;
-        double socialWeight = 1.5;
-
-        std::vector<double> lowerBounds = {-5.0, -5.0};
-        std::vector<double> upperBounds = {5.0, 5.0};
-
-        PSO<double, std::function<double(double*)>> pso(
-            numParticles, dimension, maxIterations, tolerance,
-            inertiaWeight, cognitiveWeight, socialWeight,
-            testFunc, lowerBounds, upperBounds
-        );
-
-        // Test that PSO runs without crashing
-        pso.solve();
-
-        std::cout << "PSO sphere function test completed successfully" << std::endl;
-    }
-
-    SECTION("PSO with different problem sizes") {
-        std::vector<size_t> dimensions = {1, 2, 3, 5};
-
-        for (size_t dim : dimensions) {
-            // Create wrapper function for this dimension
-            auto testFunc = [dim](double* x) -> double {
-                std::vector<double> vec(x, x + dim);  // Convert double* to vector
-                return sphereFunction(vec);
-            };
-
-            std::vector<double> lowerBounds(dim, -10.0);
-            std::vector<double> upperBounds(dim, 10.0);
-
-            PSO<double, std::function<double(double*)>> pso(
-                30, dim, 50, 1e-6, 0.7, 1.5, 1.5,
-                testFunc, lowerBounds, upperBounds
-            );
-
-            // Should execute without error
-            pso.solve();
-
-            std::cout << "PSO test with dimension " << dim << " completed" << std::endl;
-        }
-    }
-}
-
-TEST_CASE("PSO Parameter Validation", "[pso_parameters]") {
-
-    SECTION("PSO with various parameter combinations") {
-        // Create wrapper function that converts double* to vector<double>
-        auto testFunc = [](double* x) -> double {
-            std::vector<double> vec(x, x + 2);  // Convert double* to vector
-            return sphereFunction(vec);
-        };
-
-        struct PSOParams {
-            size_t particles;
-            double inertia;
-            double cognitive;
-            double social;
-        };
-
-        std::vector<PSOParams> paramSets = {
-            {10, 0.5, 1.0, 1.0},
-            {50, 0.7, 1.5, 1.5},
-            {20, 0.9, 2.0, 2.0},
-            {100, 0.4, 1.2, 1.8}
-        };
-
-        for (const auto& params : paramSets) {
-            PSO<double, std::function<double(double*)>> pso(
-                params.particles, 2, 100, 1e-6,
-                params.inertia, params.cognitive, params.social,
-                testFunc, {-5.0, -5.0}, {5.0, 5.0}
-            );
-
-            pso.solve();
-
-            std::cout << "PSO test with " << params.particles << " particles completed" << std::endl;
-        }
-    }
-
-    SECTION("PSO with boundary cases") {
-        // Create wrapper function that converts double* to vector<double>
-        auto testFunc = [](double* x) -> double {
-            std::vector<double> vec(x, x + 2);  // Convert double* to vector
-            return sphereFunction(vec);
-        };
-
-        // Test very narrow bounds
-        PSO<double, std::function<double(double*)>> narrow_pso(
-            20, 2, 50, 1e-6, 0.5, 1.0, 1.0,
-            testFunc, {1.0, 1.0}, {1.001, 1.001}
-        );
-
-        narrow_pso.solve();
-
-        // Test wide bounds
-        PSO<double, std::function<double(double*)>> wide_pso(
-            20, 2, 50, 1e-6, 0.5, 1.0, 1.0,
-            testFunc, {-100.0, -100.0}, {100.0, 100.0}
-        );
-
-        wide_pso.solve();
-
-        std::cout << "PSO boundary case tests completed" << std::endl;
-    }
-}
-
-TEST_CASE("PSO with Orbital Transfer Problems", "[pso_orbital]") {
-
-    SECTION("PSO with coplanar orbital transfer") {
-        // Set up coplanar transfer problem
-        OrbitTransferObjective<double, std::function<double(double*)>> orbitObjective(
-            1.0, 1.5, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-        );
-
-        // PSO bounds for orbital transfer
-        std::vector<double> lowerBounds = {0.0, 0.0, 0.1};      // TA1, TA2, transfer time
-        std::vector<double> upperBounds = {2*M_PI, 2*M_PI, 10.0};
-
-        PSO<double, std::function<double(double*)>> pso(
-            30, 3, 100, 1e-6, 0.6, 1.8, 1.8,
-            orbitObjective, lowerBounds, upperBounds
-        );
-
-        // Should execute without error
-        pso.solve();
-
-        std::cout << "PSO coplanar orbital transfer test completed" << std::endl;
-    }
-
-    SECTION("PSO with non-coplanar orbital transfer") {
-        // Set up non-coplanar transfer problem (your actual problem)
-        OrbitTransferObjective<double, std::function<double(double*)>> orbitObjective(
-            1.0, 1.5, 2.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0  // 28.6° inclination difference
-        );
-
-        std::vector<double> lowerBounds = {0.0, 0.0, 0.1};
-        std::vector<double> upperBounds = {2*M_PI, 2*M_PI, 10.0};
-
-        PSO<double, std::function<double(double*)>> pso(
-            50, 3, 200, 1e-6, 0.6, 1.8, 1.8,
-            orbitObjective, lowerBounds, upperBounds
-        );
-
-        // This is the critical test - should execute without instant convergence
-        pso.solve();
-
-        std::cout << "PSO non-coplanar orbital transfer test completed" << std::endl;
-        std::cout << "If this test passes, PSO can handle your problem without crashing" << std::endl;
-    }
-}
-
-TEST_CASE("PSO Execution Diagnostics", "[pso_diagnostics]") {
-
-    SECTION("PSO multiple execution consistency") {
-        // Create wrapper function that converts double* to vector<double>
-        auto testFunc = [](double* x) -> double {
-            std::vector<double> vec(x, x + 2);  // Convert double* to vector
-            return sphereFunction(vec);
-        };
-
-        int numRuns = 3;
-        bool allRunsSucceeded = true;
-
-        for (int run = 0; run < numRuns; run++) {
-            try {
-                PSO<double, std::function<double(double*)>> pso(
-                    20, 2, 50, 1e-6, 0.7, 1.5, 1.5,
-                    testFunc, {-5.0, -5.0}, {5.0, 5.0}
-                );
-
-                pso.solve();
-                std::cout << "Run " << (run + 1) << " completed successfully" << std::endl;
-
-            } catch (const std::exception& e) {
-                std::cout << "Run " << (run + 1) << " failed: " << e.what() << std::endl;
-                allRunsSucceeded = false;
-            }
-        }
-
-        REQUIRE(allRunsSucceeded);
-    }
-
-    SECTION("PSO with problematic objective function") {
-        // Function that returns NaN for some inputs
-        auto problematicFunc = [](double* x) -> double {
-            if (x[0] < 0.1 && x[1] < 0.1) {
-                return std::numeric_limits<double>::quiet_NaN();
-            }
-            return x[0]*x[0] + x[1]*x[1];
         };
 
         PSO<double, std::function<double(double*)>> pso(
             20, 2, 50, 1e-6, 0.7, 1.5, 1.5,
-            problematicFunc, {0.0, 0.0}, {2.0, 2.0}
+            testFunc, {-5.0, -5.0}, {5.0, 5.0}
         );
 
-        // Should handle NaN gracefully without crashing
+        // Should execute without crashing
+        REQUIRE_NOTHROW(pso.solve());
+
+        // Should find a reasonable solution
+        double best_value = pso.getBestValue();
+        REQUIRE(best_value >= 0.0);
+        REQUIRE(std::isfinite(best_value));
+
+        std::vector<double> best_pos = pso.getBestPosition();
+        REQUIRE(best_pos.size() == 2);
+        REQUIRE(std::isfinite(best_pos[0]));
+        REQUIRE(std::isfinite(best_pos[1]));
+    }
+
+    SECTION("PSO convergence on sphere function") {
+        auto testFunc = [](double* x) -> double {
+            std::vector<double> vec(x, x + 2);
+            return sphereFunction(vec);
+        };
+
+        PSO<double, std::function<double(double*)>> pso(
+            30, 2, 100, 1e-6, 0.7, 1.5, 1.5,
+            testFunc, {-10.0, -10.0}, {10.0, 10.0}
+        );
+
         pso.solve();
 
-        std::cout << "PSO handled problematic function without crashing" << std::endl;
+        double best_value = pso.getBestValue();
+        std::vector<double> best_pos = pso.getBestPosition();
+
+        // Should converge close to global minimum at origin
+        REQUIRE(best_value < 1.0);
+        REQUIRE(abs(best_pos[0]) < 1.0);
+        REQUIRE(abs(best_pos[1]) < 1.0);
+    }
+
+    SECTION("PSO with different dimensions") {
+        // Test 1D problem
+        auto func1D = [](double* x) -> double {
+            return (x[0] - 2.0) * (x[0] - 2.0);
+        };
+
+        PSO<double, std::function<double(double*)>> pso1D(
+            20, 1, 50, 1e-6, 0.5, 1.0, 1.0,
+            func1D, {-5.0}, {5.0}
+        );
+
+        REQUIRE_NOTHROW(pso1D.solve());
+
+        double best_value = pso1D.getBestValue();
+        std::vector<double> best_pos = pso1D.getBestPosition();
+
+        REQUIRE(best_pos.size() == 1);
+        REQUIRE(best_value < 1.0);
+        REQUIRE(abs(best_pos[0] - 2.0) < 1.0);
+
+        // Test 3D problem
+        auto func3D = [](double* x) -> double {
+            return x[0]*x[0] + x[1]*x[1] + x[2]*x[2];
+        };
+
+        PSO<double, std::function<double(double*)>> pso3D(
+            30, 3, 50, 1e-6, 0.5, 1.0, 1.0,
+            func3D, {-5.0, -5.0, -5.0}, {5.0, 5.0, 5.0}
+        );
+
+        REQUIRE_NOTHROW(pso3D.solve());
+        REQUIRE(pso3D.getBestPosition().size() == 3);
     }
 }
 
-TEST_CASE("PSO Instant Convergence Debug", "[pso_convergence_debug]") {
+TEST_CASE("PSO - Parameter Validation", "[pso][validation]") {
 
-    SECTION("Test that reveals instant convergence behavior") {
-        // Use orbital transfer to test instant convergence
-        OrbitTransferObjective<double, std::function<double(double*)>> orbitObjective(
-            1.0, 1.5, 2.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0
-        );
+    SECTION("Boundary constraint enforcement") {
+        auto testFunc = [](double* x) -> double {
+            return x[0] * x[0];
+        };
 
-        std::vector<double> lowerBounds = {0.0, 0.0, 0.1};
-        std::vector<double> upperBounds = {2*M_PI, 2*M_PI, 10.0};
+        std::vector<double> lower = {1.0};
+        std::vector<double> upper = {2.0};
 
-        // Test with fewer iterations to see early behavior
         PSO<double, std::function<double(double*)>> pso(
-            100, 3, 10, 1e-6, 0.6, 1.8, 1.8,  // Only 10 iterations
-            orbitObjective, lowerBounds, upperBounds
+            20, 1, 50, 1e-6, 0.5, 1.0, 1.0,
+            testFunc, lower, upper
         );
 
         pso.solve();
 
-        std::cout << "SHORT PSO run completed - check if it finds reasonable solution in just 10 iterations" << std::endl;
-        std::cout << "If it does, then instant convergence issue is confirmed" << std::endl;
+        std::vector<double> best_pos = pso.getBestPosition();
 
-        // Now test with more iterations
-        PSO<double, std::function<double(double*)>> pso_long(
-            100, 3, 1000, 1e-6, 0.6, 1.8, 1.8,  // 1000 iterations
+        // Solution should respect bounds
+        REQUIRE(best_pos[0] >= lower[0]);
+        REQUIRE(best_pos[0] <= upper[0]);
+
+        // Should find minimum at lower bound
+        REQUIRE(best_pos[0] == Catch::Approx(1.0).epsilon(1e-2));
+    }
+
+    SECTION("Different swarm sizes") {
+        auto testFunc = [](double* x) -> double {
+            return x[0]*x[0] + x[1]*x[1];
+        };
+
+        // Small swarm
+        PSO<double, std::function<double(double*)>> small_pso(
+            5, 2, 30, 1e-6, 0.5, 1.0, 1.0,
+            testFunc, {-2.0, -2.0}, {2.0, 2.0}
+        );
+
+        REQUIRE_NOTHROW(small_pso.solve());
+
+        // Large swarm
+        PSO<double, std::function<double(double*)>> large_pso(
+            100, 2, 30, 1e-6, 0.5, 1.0, 1.0,
+            testFunc, {-2.0, -2.0}, {2.0, 2.0}
+        );
+
+        REQUIRE_NOTHROW(large_pso.solve());
+
+        // Large swarm should generally perform better
+        double small_result = small_pso.getBestValue();
+        double large_result = large_pso.getBestValue();
+
+        REQUIRE(large_result <= small_result + 0.1); // Allow some tolerance
+    }
+
+    SECTION("PSO parameter sensitivity") {
+        auto testFunc = [](double* x) -> double {
+            return x[0]*x[0] + x[1]*x[1];
+        };
+
+        // High inertia (more exploration)
+        PSO<double, std::function<double(double*)>> high_inertia(
+            30, 2, 50, 1e-6, 0.9, 1.0, 1.0,
+            testFunc, {-5.0, -5.0}, {5.0, 5.0}
+        );
+
+        // Low inertia (more exploitation)
+        PSO<double, std::function<double(double*)>> low_inertia(
+            30, 2, 50, 1e-6, 0.1, 1.0, 1.0,
+            testFunc, {-5.0, -5.0}, {5.0, 5.0}
+        );
+
+        REQUIRE_NOTHROW(high_inertia.solve());
+        REQUIRE_NOTHROW(low_inertia.solve());
+
+        // Both should find reasonable solutions
+        REQUIRE(high_inertia.getBestValue() < 5.0);
+        REQUIRE(low_inertia.getBestValue() < 5.0);
+    }
+}
+
+TEST_CASE("PSO - Orbital Transfer Optimization", "[pso][orbital]") {
+
+    SECTION("Simple coplanar transfer") {
+        OrbitTransferObjective<double, std::function<double(double*)>> orbitObjective(
+            1.0, 1.5, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        );
+
+        std::vector<double> lowerBounds = {0.0, 0.0, 0.1};
+        std::vector<double> upperBounds = {2*M_PI, 2*M_PI, 5.0};
+
+        PSO<double, std::function<double(double*)>> pso(
+            50, 3, 100, 1e-6, 0.6, 1.5, 1.5,
             orbitObjective, lowerBounds, upperBounds
         );
 
-        pso_long.solve();
+        REQUIRE_NOTHROW(pso.solve());
 
-        std::cout << "LONG PSO run completed - compare results with short run" << std::endl;
+        double best_deltaV = pso.getBestValue();
+        std::vector<double> best_params = pso.getBestPosition();
+
+        REQUIRE(best_deltaV > 0.0);
+        REQUIRE(best_deltaV < 10.0); // Reasonable upper bound
+        REQUIRE(best_params.size() == 3);
+
+        // Parameters should be within bounds
+        REQUIRE(best_params[0] >= lowerBounds[0]);
+        REQUIRE(best_params[0] <= upperBounds[0]);
+        REQUIRE(best_params[1] >= lowerBounds[1]);
+        REQUIRE(best_params[1] <= upperBounds[1]);
+        REQUIRE(best_params[2] >= lowerBounds[2]);
+        REQUIRE(best_params[2] <= upperBounds[2]);
+    }
+
+    SECTION("Non-coplanar transfer optimization") {
+        OrbitTransferObjective<double, std::function<double(double*)>> orbitObjective(
+            1.0, 1.8, 3.0,     // LEO to MEO
+            0.0, 0.0,          // circular orbits
+            0.0, 0.5236,       // 0° to 30° inclination
+            0.0, 0.0, 0.0, 0.0
+        );
+
+        std::vector<double> lowerBounds = {0.0, 0.0, 1.0};
+        std::vector<double> upperBounds = {2*M_PI, 2*M_PI, 8.0};
+
+        PSO<double, std::function<double(double*)>> pso(
+            30, 3, 80, 1e-6, 0.6, 1.5, 1.5,
+            orbitObjective, lowerBounds, upperBounds
+        );
+
+        REQUIRE_NOTHROW(pso.solve());
+
+        double best_deltaV = pso.getBestValue();
+
+        REQUIRE(best_deltaV > 0.0);
+        REQUIRE(std::isfinite(best_deltaV));
+
+        // Should be higher than coplanar due to plane change
+        REQUIRE(best_deltaV > 1.0);
+    }
+}
+
+TEST_CASE("PSO - Robustness and Edge Cases", "[pso][edge_cases]") {
+
+    SECTION("Narrow search bounds") {
+        auto testFunc = [](double* x) -> double {
+            return (x[0] - 1.5) * (x[0] - 1.5);
+        };
+
+        // Very narrow bounds around optimum
+        PSO<double, std::function<double(double*)>> narrow_pso(
+            20, 1, 30, 1e-6, 0.5, 1.0, 1.0,
+            testFunc, {1.49}, {1.51}
+        );
+
+        REQUIRE_NOTHROW(narrow_pso.solve());
+
+        double best_value = narrow_pso.getBestValue();
+        std::vector<double> best_pos = narrow_pso.getBestPosition();
+
+        REQUIRE(best_value < 0.01);
+        REQUIRE(abs(best_pos[0] - 1.5) < 0.01);
+    }
+
+    SECTION("Multiple local minima function") {
+        auto multiModal = [](double* x) -> double {
+            return sin(x[0]) * sin(x[0]) + 0.1 * cos(10 * x[0]) + 1.0;
+        };
+
+        PSO<double, std::function<double(double*)>> pso(
+            50, 1, 100, 1e-6, 0.7, 2.0, 2.0,
+            multiModal, {-5.0}, {5.0}
+        );
+
+        REQUIRE_NOTHROW(pso.solve());
+
+        double best_value = pso.getBestValue();
+
+        REQUIRE(best_value >= 0.0); // Function minimum is around 0
+        REQUIRE(best_value < 2.0);
+    }
+
+    SECTION("PSO state consistency") {
+        auto testFunc = [](double* x) -> double {
+            return x[0]*x[0] + x[1]*x[1];
+        };
+
+        PSO<double, std::function<double(double*)>> pso(
+            20, 2, 50, 1e-6, 0.5, 1.0, 1.0,
+            testFunc, {-2.0, -2.0}, {2.0, 2.0}
+        );
+
+        // Multiple solve calls should be consistent
+        pso.solve();
+        double result1 = pso.getBestValue();
+
+        pso.solve();
+        double result2 = pso.getBestValue();
+
+        // Second run should be same or better
+        REQUIRE(result2 <= result1);
+        REQUIRE(std::isfinite(result1));
+        REQUIRE(std::isfinite(result2));
     }
 }

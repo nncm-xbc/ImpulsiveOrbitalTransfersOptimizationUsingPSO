@@ -111,30 +111,6 @@ class OrbitTransferObjective
         double checkConstraints(const std::vector<double>& x);
 
         /**
-         * @brief Calculate parabolic transfer time
-         * @param r1 Initial orbit radius (DU)
-         * @param r2 Target orbit radius (DU)
-         * @param angularSeparation Angular separation between orbits (radians)
-         * @return Parabolic transfer time (TU)
-         *
-         * Computes the time required for a parabolic transfer between two
-         * circular orbits based on their radii and angular separation.
-         */
-        double calculateAngularSeparation(const Physics::Vector3& r1, const Physics::Vector3& r2);
-
-        /** 
-         * @brief Calculate parabolic transfer time
-         * @param r1 Initial orbit radius (DU)
-         * @param r2 Target orbit radius (DU)
-         * @param theta Angular separation between orbits (radians)
-         * @return Parabolic transfer time (TU)
-         * 
-         * Calculates the time required for a parabolic transfer between two
-         * circular orbits based on their radii and the angle between them.
-         */
-        double calculateParabolicTime(double r1, double r2, double theta);
-
-        /**
          * @brief Check if transfer orbit intersects target orbit
          * @param x Vector of optimization parameters
          * @return true if orbits intersect properly
@@ -228,6 +204,11 @@ class OrbitTransferObjective
          * Helps avoid premature convergence to infeasible regions.
          */
         double getRelaxationFactor() const;
+
+        double calculateMinimumTransferTime(double theta1, double theta2);
+
+        bool orbitsIntersect();
+
 };
 
 #endif

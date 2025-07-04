@@ -162,6 +162,7 @@ public:
                                        double omega, double true_anomaly);
 
     /**
+     *
      * @brief Calculate 3D position vector in inertial frame
      * @param a Semi-major axis (DU)
      * @param e Eccentricity (dimensionless)

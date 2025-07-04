@@ -112,6 +112,18 @@ class PSO
          */
         void saveResults(const std::string& filename, OrbitTransferObjective<double, std::function<double(double*)>> orbitProblem);
 
+        /**
+         * @brief Get the best value of the objective function
+         * @return Best value of the objective function
+         */
+        T getBestValue() const;
+
+        /**
+         * @brief Get the best position of the objective function
+         * @return Best position of the objective function
+         */
+        std::vector<T> getBestPosition() const;
+
     private:
         /** @brief Particle swarm containing all candidate solutions */
         Swarm<T, Fun> swarm;

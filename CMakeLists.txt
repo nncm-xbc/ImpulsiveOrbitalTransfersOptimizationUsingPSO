@@ -11,10 +11,10 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 # Set build type specific flags
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -pedantic -O0 -g -march=native")
+    set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -pedantic -O3 -march=native")
     message(STATUS "Debug mode: Optimizations disabled, debug symbols enabled")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -flto -funroll-loops -march=native -Wall")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -funroll-loops -march=native -Wall")
     message(STATUS "Release mode: Full optimizations enabled")
 endif()
 
@@ -79,7 +79,7 @@ else()
 endif()
 
 # ------------------------------------------------------------------------------------------------------
-# Include directories 
+# Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/glad/include)
 include_directories(${GLM_INCLUDE_DIR})
@@ -168,22 +168,31 @@ find_package(Catch2)
 if(Catch2_FOUND)
     message("-- Catch2 was found")
 
-    # Add test executable
     set(TEST_SOURCES
-        # tests/test_particle.cpp
-        # tests/test_swarm.cpp
-        tests/test_PSO.cpp
+        tests/test_OrbitMechanics.cpp
         tests/test_OrbitProblem.cpp
-        tests/test_OrbitTransfer.cpp
+        tests/test_PSO.cpp
     )
 
     add_executable(run_tests ${TEST_SOURCES})
     target_link_libraries(run_tests PRIVATE PSO_core)
     target_link_libraries(run_tests PRIVATE Catch2::Catch2WithMain)
 
-    # Add tests
+    add_executable(test_orbit_mechanics tests/test_OrbitMechanics.cpp)
+    target_link_libraries(test_orbit_mechanics PRIVATE PSO_core Catch2::Catch2WithMain)
+
+    add_executable(test_orbit_problem tests/test_OrbitProblem.cpp)
+    target_link_libraries(test_orbit_problem PRIVATE PSO_core Catch2::Catch2WithMain)
+
+    add_executable(test_pso tests/test_PSO.cpp)
+    target_link_libraries(test_pso PRIVATE PSO_core Catch2::Catch2WithMain)
+
     include(Catch)
     catch_discover_tests(run_tests)
+    catch_discover_tests(test_orbit_mechanics)
+    catch_discover_tests(test_orbit_problem)
+    catch_discover_tests(test_pso)
+
 else()
     message(WARNING "Catch2 was not found. Tests will not be built.")
 endif()

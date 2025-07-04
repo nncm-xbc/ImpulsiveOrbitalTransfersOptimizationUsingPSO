@@ -1,7 +1,6 @@
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch_all.hpp>
-#include "Particle.hpp"
-#include "Functions.hpp"
+#include "optimization/Particle.hpp"
 #include <vector>
 #include <functional>
 

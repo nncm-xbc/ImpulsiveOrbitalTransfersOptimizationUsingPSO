@@ -1,7 +1,6 @@
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch_all.hpp>
-#include "Swarm.hpp"
-#include "Functions.hpp"
+#include "optimization/Swarm.hpp"
 
 TEST_CASE("Swarm tests", "[swarm]") {
     using SwarmType = Swarm<double, std::function<double(double*, size_t)>>;

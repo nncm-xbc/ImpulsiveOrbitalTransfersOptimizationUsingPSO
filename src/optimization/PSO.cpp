@@ -34,7 +34,7 @@ template <typename T, typename Fun>
 void PSO<T, Fun>::solve()
 {
     swarm.init();
-    swarm.info();
+    //swarm.info();
 
     Logger conv_logger("../ressources/convergence_log.csv");
 
@@ -104,51 +104,34 @@ void PSO<T, Fun>::updateWC(std::vector<T> GBPos_previous, size_t iter)
 }
 
 template <typename T, typename Fun>
-void PSO<T, Fun>::printResults() const
-{
-    std::cout << std::fixed << std::setprecision(6);
+void PSO<T, Fun>::printResults() const {
+    std::vector<T> bestSolution = swarm.getGlobalBestPosition();
+    double bestDeltaV = swarm.getGlobalBestValue();
 
     std::cout << "\n╔══════════════════════════════════════════════════════════════════════╗" << std::endl;
-    std::cout << "║                            PSO OPTIMIZATION RESULTS                  ║" << std::endl;
+    std::cout << "║                     PSO ORBITAL TRANSFER RESULTS                     ║" << std::endl;
     std::cout << "╠══════════════════════════════════════════════════════════════════════╣" << std::endl;
-
-    // Get the best solution parameters
-    auto bestSolution = swarm.getGlobalBestPosition();
-
     std::cout << "║ OPTIMAL TRANSFER PARAMETERS:                                         ║" << std::endl;
-    std::cout << "║   • Departure True Anomaly:    " << std::setw(12) << bestSolution[0] * 180.0/M_PI << "°" << std::setw(28) << " ║" << std::endl;
-    std::cout << "║   • Arrival True Anomaly:      " << std::setw(12) << bestSolution[1] * 180.0/M_PI << "°" << std::setw(28) << " ║" << std::endl;
-    std::cout << "║   • First Impulse Magnitude:   " << std::setw(12) << bestSolution[2] << " km/s" << std::setw(24) << " ║" << std::endl;
-    std::cout << "║   • Second Impulse Magnitude:  " << std::setw(12) << bestSolution[3] << " km/s" << std::setw(24) << " ║" << std::endl;
-    std::cout << "║   • Impulse Direction:         " << std::setw(12) << bestSolution[4] * 180.0/M_PI << "°" << std::setw(28) << " ║" << std::endl;
-    std::cout << "║   • Transfer Time:             " << std::setw(12) << bestSolution[5] << " TU" << std::setw(26) << " ║" << std::endl;
-
-    std::cout << "╠══════════════════════════════════════════════════════════════════════╣" << std::endl;
-
-    // Performance metrics
-    double bestDeltaV = swarm.getGlobalBestValue();
-    std::cout << "║ TRANSFER PERFORMANCE:                                                ║" << std::endl;
+    std::cout << "║   • Departure True Anomaly:    " << std::setw(12) << bestSolution[0] * 180.0/M_PI << " degrees" << std::setw(21) << " ║" << std::endl;
+    std::cout << "║   • Arrival True Anomaly:      " << std::setw(12) << bestSolution[1] * 180.0/M_PI << " degrees" << std::setw(21) << " ║" << std::endl;
+    std::cout << "║   • Transfer Time:             " << std::setw(12) << bestSolution[2] * constant::TU / 3600. << " hours" << std::setw(23) << " ║" << std::endl;
     std::cout << "║   • Total ΔV Required:         " << std::setw(12) << bestDeltaV << " km/s" << std::setw(24) << " ║" << std::endl;
-    std::cout << "║   • Individual ΔV₁:            " << std::setw(12) << bestSolution[2] << " km/s" << std::setw(24) << " ║" << std::endl;
-    std::cout << "║   • Individual ΔV₂:            " << std::setw(12) << bestSolution[3] << " km/s" << std::setw(24) << " ║" << std::endl;
-    std::cout << "║   • Transfer Efficiency:       " << std::setw(12) << (bestSolution[2] + bestSolution[3])/bestDeltaV * 100 << "%" << std::setw(28) << " ║" << std::endl;
-
     std::cout << "╠══════════════════════════════════════════════════════════════════════╣" << std::endl;
-
-    // Algorithm performance
+    std::cout << "║ OPTIMIZATION VARIABLES:                                              ║" << std::endl;
+    std::cout << "║   • Variable 1 (θ₀):           " << std::setw(12) << bestSolution[0] << " radians" << std::setw(21) << " ║" << std::endl;
+    std::cout << "║   • Variable 2 (θf):           " << std::setw(12) << bestSolution[1] << " radians" << std::setw(21) << " ║" << std::endl;
+    std::cout << "║   • Variable 3 (Δt):           " << std::setw(12) << bestSolution[2] << " TU" << std::setw(26) << " ║" << std::endl;
+    std::cout << "╠══════════════════════════════════════════════════════════════════════╣" << std::endl;
     std::cout << "║ ALGORITHM PERFORMANCE:                                               ║" << std::endl;
     std::cout << "║   • Iterations Completed:      " << std::setw(12) << _maxIterations << std::setw(29) << " ║" << std::endl;
     std::cout << "║   • Max Iterations:            " << std::setw(12) << _maxIterations << std::setw(29) << " ║" << std::endl;
     std::cout << "║   • Convergence Status:        " << std::setw(20) << "COMPLETED" << std::setw(21) << " ║" << std::endl;
     std::cout << "║   • Final Inertia Weight:      " << std::setw(12) << swarm.getInertiaWeight() << std::setw(29) << " ║" << std::endl;
-
     std::cout << "╚══════════════════════════════════════════════════════════════════════╝" << std::endl;
 
-    // Summary line
     std::cout << "\n MISSION SUMMARY: Optimal orbital transfer found with "
               << bestDeltaV << " km/s total ΔV requirement" << std::endl;
 
-    // Reset formatting
     std::cout << std::scientific;
 }
 
@@ -213,6 +196,16 @@ void PSO<T, Fun>::saveResults(const std::string& filename, OrbitTransferObjectiv
     }
 
     outFile.close();
+}
+
+template<typename T, typename F>
+std::vector<T> PSO<T, F>::getBestPosition() const {
+    return swarm.getGlobalBestPosition();
+}
+
+template<typename T, typename F>
+T PSO<T, F>::getBestValue() const {
+    return swarm.getGlobalBestValue();
 }
 
 template class PSO<double, std::function<double(double*)>>;

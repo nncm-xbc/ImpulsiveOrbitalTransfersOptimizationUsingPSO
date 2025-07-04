@@ -22,10 +22,19 @@ namespace constant {
     /** @brief Normalized gravitational parameter (DU³/TU²) */
     inline constexpr double MU = 1.0;
 
+    /** @brief Distance unit conversion: 1 DU = 6378.165 km */
+        inline constexpr double DU = 6378.165; // km
+
+    /** @brief Time unit conversion: 1 TU = 806.8 s */
+    inline constexpr double TU = 806.8; // seconds
+
+    /** @brief Velocity unit conversion: 1 DU/TU = 7.452 km/s */
+    inline constexpr double VU = DU/TU; // km/s
+
     /** @brief Initial orbit radius (normalized) */
     inline constexpr double R1 = 1.0;
     /** @brief Target orbit radius (normalized) */
-    inline constexpr double R2 = 1.5;
+    inline constexpr double R2 = 1.0;
 
     // Eccentricities
     /** @brief Initial orbit eccentricity */

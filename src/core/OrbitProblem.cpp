@@ -29,7 +29,6 @@ template <typename T, typename Fun>
 double OrbitTransferObjective<T, Fun>::operator()(double* x)
 {
     std::vector<double> params(x, x + 3);
-
     return calculateDeltaV(params);
 }
 
@@ -78,6 +77,13 @@ double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>
                 return 1000.0;  // Simple high penalty
             }
 
+            double angle_between = std::acos(std::clamp(
+                r_init_vec.dot(r_final_vec) / (r_init_vec.magnitude() * r_final_vec.magnitude()),
+                -1.0, 1.0)) * 180/M_PI;
+
+            if (angle_between < 90.0) {
+                return deltaV + 50000.0;  // Heavy penalty
+            }
             double violation = checkConstraints(x, deltaV);
             if (violation > 1e-4) {
                 return deltaV + violation;
@@ -120,16 +126,28 @@ double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>
 
             deltaV = deltaV1 + deltaV2;
 
+            double expected_hohmann_time = M_PI * sqrt(pow((constant::R1 + constant::R2)/2.0, 3) / _MU);
+            double time_error = abs(transferTime - expected_hohmann_time) / expected_hohmann_time;
+
+            if (time_error > 0.3) {
+                return deltaV + 1000.0;
+            }
+
             if (std::isnan(deltaV) || std::isinf(deltaV) || deltaV < 0.0) {
-                return 1000.0;  // Simple high penalty
+                return 1000.0;
+            }
+
+            double angular_separation = arrivalTrueAnomaly - departureTrueAnomaly;
+            if (angular_separation < 0) angular_separation += 2*M_PI;
+
+            if (angular_separation < 2.5 || angular_separation > 4.0) {
+               return deltaV + 1000.0;
             }
 
             double violation = checkConstraints(x, deltaV);
             if (violation > 1e-4) {
                 return deltaV + violation;
             }
-
-
 
             return deltaV;
         }
@@ -184,6 +202,7 @@ std::map<std::string, double> OrbitTransferObjective<T, Fun>::getTransferDetails
             r_final_vec = Physics::OrbitMechanics::calculatePosition3D(_R2, _e2, _i2, _raan2, _omega2, arrivalTrueAnomaly);
             v_init_vec = Physics::OrbitMechanics::calculateVelocity3D(_R1, _e1, _i1, _raan1, _omega1, departureTrueAnomaly);
             v_final_vec = Physics::OrbitMechanics::calculateVelocity3D(_R2, _e2, _i2, _raan2, _omega2, arrivalTrueAnomaly);
+
         } else {
             // Coplanar case
             double r_init = Physics::OrbitMechanics::calculateRadius(_R1, _e1, departureTrueAnomaly);
@@ -327,7 +346,8 @@ double OrbitTransferObjective<T, Fun>::getRelaxationFactor() const {
         return 1.3;
     } else {
         return 1.3 - 0.5 * (progress - 0.7) / 0.3;
-    }}
+    }
+}
 
 template <typename T, typename Fun>
 double OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double>& x, double deltaV) {
@@ -347,50 +367,10 @@ double OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double
     }
 
     // transfer time bounds
-    if (transferTime < 0.1 || transferTime > 100.0) {
+    if (transferTime < 0.1 || transferTime > 50.0) {
         totalViolation += 50.0;
     }
 
     return totalViolation;
 }
-
-template <typename T, typename Fun>
-double OrbitTransferObjective<T, Fun>::calculateMinimumTransferTime(
-    double theta1, double theta2) {
-
-    // Calculate positions
-    Physics::Vector3 r1 = Physics::OrbitMechanics::calculatePosition3D(
-        _R1, _e1, _i1, _raan1, _omega1, theta1);
-    Physics::Vector3 r2 = Physics::OrbitMechanics::calculatePosition3D(
-        _R2, _e2, _i2, _raan2, _omega2, theta2);
-
-    // Use parabolic transfer as minimum time estimate
-    double r1_mag = r1.magnitude();
-    double r2_mag = r2.magnitude();
-
-    // Angular separation between position vectors
-    double cos_angle = r1.dot(r2) / (r1_mag * r2_mag);
-    cos_angle = std::max(-1.0, std::min(1.0, cos_angle));  // Clamp to valid range
-    double transfer_angle = std::acos(cos_angle);
-
-    // Parabolic transfer time
-    double chord = std::sqrt(r1_mag*r1_mag + r2_mag*r2_mag -
-                            2*r1_mag*r2_mag*std::cos(transfer_angle));
-    double s = (r1_mag + r2_mag + chord) / 2.0;
-    double a_parabolic = s / 2.0;
-
-    return M_PI * std::sqrt(a_parabolic*a_parabolic*a_parabolic / _MU);
-}
-
-template <typename T, typename Fun>
-bool OrbitTransferObjective<T, Fun>::orbitsIntersect() {
-    if (_e1 == 0.0 && _e2 == 0.0) {
-        return (std::abs(_R1 - _R2) < 1e-6) &&
-               (std::abs(_i1 - _i2) < 1e-6) &&
-               (std::abs(_raan1 - _raan2) < 1e-6);
-    }
-
-    return false;
-}
-
 template class OrbitTransferObjective<double, std::function<double(double*)>>;

@@ -28,7 +28,7 @@ PSO<T, Fun>::PSO(size_t numParticles,
                     lowerBounds,
                     upperBounds),
                 _maxIterations(maxIterations),
-                _tolerance(tolerance){}
+                _tolerance(tolerance) {}
 
 template <typename T, typename Fun>
 void PSO<T, Fun>::solve()
@@ -76,7 +76,7 @@ void PSO<T, Fun>::solve()
              for (size_t i = progress_bars; i < 20; ++i) std::cout << " ";
              std::cout << "] " << std::setw(3) << (iter * 100) / _maxIterations << "% | "
                        << "Best ΔV: " << std::fixed << std::setprecision(6) << swarm.getGlobalBestValue()
-                       << " km/s | Time: " << elapsed.count() << "s" << std::flush;
+                       << " TU/DU | Time: " << elapsed.count() << "s" << std::flush;
          }
 
         if(iter%100 == 0)
@@ -115,7 +115,7 @@ void PSO<T, Fun>::printResults() const {
     std::cout << "║   • Departure True Anomaly:    " << std::setw(12) << bestSolution[0] * 180.0/M_PI << " degrees" << std::setw(21) << " ║" << std::endl;
     std::cout << "║   • Arrival True Anomaly:      " << std::setw(12) << bestSolution[1] * 180.0/M_PI << " degrees" << std::setw(21) << " ║" << std::endl;
     std::cout << "║   • Transfer Time:             " << std::setw(12) << bestSolution[2] * constant::TU / 3600. << " hours" << std::setw(23) << " ║" << std::endl;
-    std::cout << "║   • Total ΔV Required:         " << std::setw(12) << bestDeltaV << " km/s" << std::setw(24) << " ║" << std::endl;
+    std::cout << "║   • Total ΔV Required:         " << std::setw(12) << bestDeltaV * constant::VU << " km/s" << std::setw(24) << " ║" << std::endl;
     std::cout << "╠══════════════════════════════════════════════════════════════════════╣" << std::endl;
     std::cout << "║ OPTIMIZATION VARIABLES:                                              ║" << std::endl;
     std::cout << "║   • Variable 1 (θ₀):           " << std::setw(12) << bestSolution[0] << " radians" << std::setw(21) << " ║" << std::endl;
@@ -130,7 +130,7 @@ void PSO<T, Fun>::printResults() const {
     std::cout << "╚══════════════════════════════════════════════════════════════════════╝" << std::endl;
 
     std::cout << "\n MISSION SUMMARY: Optimal orbital transfer found with "
-              << bestDeltaV << " km/s total ΔV requirement" << std::endl;
+              << bestDeltaV * constant::VU << " km/s total ΔV requirement" << std::endl;
 
     std::cout << std::scientific;
 }

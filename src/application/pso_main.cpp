@@ -44,7 +44,7 @@ int main()
     upperBounds[1] = 2*M_PI;
 
     // Transfer time bounds
-    lowerBounds[2] = 0.4;
+    lowerBounds[2] = 0.1;
     upperBounds[2] = 50.0;
 
     // Create PSO instance
@@ -63,30 +63,9 @@ int main()
     // Main loop
     pso.solve();
 
-    std::vector<double> bestSolution = pso.getBestPosition();
-     double bestDeltaV = pso.getBestValue();
-
-     // Extract parameters
-     double theta0 = bestSolution[0];
-     double thetaF = bestSolution[1];
-     double transferTime = bestSolution[2];
-
     // Results
     pso.printResults();
     pso.saveResults("../ressources/results.txt", objectiveFunction);
-
-    // For coplanar
-    if (constant::I1 == 0.0 && constant::I2 == 0.0) {
-        std::cout << "\n=== ANALYTICAL VALIDATION ===" << std::endl;
-
-        HohmannSolution<double> hohmann(constant::R1, constant::R2, constant::MU);
-
-        hohmann.printValidationReport(bestDeltaV, transferTime, theta0, thetaF);
-    } else {
-        std::cout << "\n Non-coplanar transfer - No analytical validation" << std::endl;
-        std::cout << "   Expected ΔV range for plane change: " << std::fixed << std::setprecision(1)
-                    << "2.0-4.0 km/s" << std::endl;
-    }
 
     return 0;
 }

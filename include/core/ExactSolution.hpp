@@ -190,9 +190,9 @@ public:
         std::cout << "╠══════════════════════════════════════════════════════════════════════╣" << std::endl;
         std::cout << "║ DELTA-V COMPARISON:                                                  ║" << std::endl;
         std::cout << "║   • Analytical Total ΔV:       " << std::setw(12) << std::fixed << std::setprecision(3)
-                  << analytical.deltaV << " km/s" << std::setw(24) << " ║" << std::endl;
+                  << analytical.deltaV << " TU/DU" << std::setw(23) << " ║" << std::endl;
         std::cout << "║   • PSO Total ΔV:              " << std::setw(12) << std::fixed << std::setprecision(3)
-                  << numericalDeltaV << " km/s" << std::setw(24) << " ║" << std::endl;
+                  << numericalDeltaV << " TU/DU" << std::setw(23) << " ║" << std::endl;
         T deltaVError = getDeltaVError(numericalDeltaV);
         std::cout << "║   • ΔV Error:                  " << std::setw(12) << std::fixed << std::setprecision(2)
                   << deltaVError * 100.0 << "%" << std::setw(28) << " ║" << std::endl;

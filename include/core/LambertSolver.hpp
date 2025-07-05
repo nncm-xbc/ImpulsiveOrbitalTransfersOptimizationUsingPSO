@@ -191,7 +191,7 @@ private:
      * Stumpff function C(z) = (1 - cos(√z))/z for z > 0
      * Used in universal variable formulation for robust convergence.
      */
-    double stumpffC(double z) const;
+    static double stumpffC(double z);
 
     /**
      * @brief Stumpff function S(z) for universal variable formulation
@@ -201,7 +201,7 @@ private:
      * Stumpff function S(z) = (√z - sin(√z))/(√z)³ for z > 0
      * Used in universal variable formulation for robust convergence.
      */
-    double stumpffS(double z) const;
+    static double stumpffS(double z);
 };
 } // namespace Physics
 

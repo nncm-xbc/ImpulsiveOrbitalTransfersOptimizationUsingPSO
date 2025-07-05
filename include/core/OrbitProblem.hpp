@@ -108,17 +108,7 @@ class OrbitTransferObjective
          * - Orbital intersection requirements
          * - Plane change requirements
          */
-        double checkConstraints(const std::vector<double>& x);
-
-        /**
-         * @brief Check if transfer orbit intersects target orbit
-         * @param x Vector of optimization parameters
-         * @return true if orbits intersect properly
-         *
-         * Verifies that the transfer orbit actually connects the initial
-         * and target orbits at the specified true anomalies.
-         */
-        bool doesIntersect(const std::vector<double>& x);
+        double checkConstraints(const std::vector<double>& x, double deltaV);
 
         //PSO class is a friend :)
         template<typename Y, typename Fin>

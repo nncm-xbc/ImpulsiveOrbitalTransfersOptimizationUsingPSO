@@ -4,6 +4,7 @@
 
 #include "core/OrbitMechanics.hpp"
 #include "core/LambertSolver.hpp"
+#include "core/Constants.hpp"
 
 #include <iostream>
 #include <functional>
@@ -12,12 +13,12 @@
 int main()
 {
     // Define PSO parameters
-    size_t numParticles = 1000;
+    size_t numParticles = constant::SWARM_SIZE;
     size_t dimension = 3;
         // x[0]: departure true anomaly (0 to 2π)
         // x[1]: arrival true anomaly (0 to 2π)
         // x[2]: time of flight (0 to 1)
-    size_t maxIterations = 5000;
+    size_t maxIterations = constant::MAX_ITERATIONS;
     double tolerance = 1e-2;
     double inertiaWeight = 0.8;
     double cognitiveWeight = 1.5;
@@ -43,8 +44,8 @@ int main()
     upperBounds[1] = 2*M_PI;
 
     // Transfer time bounds
-    lowerBounds[2] = 0.1;
-    upperBounds[2] = 100.0;
+    lowerBounds[2] = 0.4;
+    upperBounds[2] = 50.0;
 
     // Create PSO instance
     PSO<double, std::function<double(double*)>> pso(

@@ -78,7 +78,7 @@ double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>
                 return 1000.0;  // Simple high penalty
             }
 
-            double violation = checkConstraints(x);
+            double violation = checkConstraints(x, deltaV);
             if (violation > 1e-4) {
                 return deltaV + violation;
             }
@@ -120,10 +120,16 @@ double OrbitTransferObjective<T, Fun>::calculateDeltaV(const std::vector<double>
 
             deltaV = deltaV1 + deltaV2;
 
-            double violation = checkConstraints(x);
+            if (std::isnan(deltaV) || std::isinf(deltaV) || deltaV < 0.0) {
+                return 1000.0;  // Simple high penalty
+            }
+
+            double violation = checkConstraints(x, deltaV);
             if (violation > 1e-4) {
                 return deltaV + violation;
             }
+
+
 
             return deltaV;
         }
@@ -324,78 +330,30 @@ double OrbitTransferObjective<T, Fun>::getRelaxationFactor() const {
     }}
 
 template <typename T, typename Fun>
-double OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double>& x) {
+double OrbitTransferObjective<T, Fun>::checkConstraints(const std::vector<double>& x, double deltaV) {
     double totalViolation = 0.0;
-
-    if (x.size() < 3) return 1000.0;  // Critical constraint
+    if (x.size() < 3) return 1000.0;
 
     double departureTrueAnomaly = x[0];
     double arrivalTrueAnomaly = x[1];
     double transferTime = x[2];
 
-    // 1. True anomaly bounds [0, 2π]
-    if (departureTrueAnomaly < 0.0) {
-        totalViolation += std::abs(departureTrueAnomaly) * 10.0;
+    // parameter bounds
+    if (departureTrueAnomaly < 0.0 || departureTrueAnomaly > 2*M_PI) {
+        totalViolation += 10.0;
     }
-    if (departureTrueAnomaly > 2*M_PI) {
-        totalViolation += (departureTrueAnomaly - 2*M_PI) * 10.0;
-    }
-
-    if (arrivalTrueAnomaly < 0.0) {
-        totalViolation += std::abs(arrivalTrueAnomaly) * 10.0;
-    }
-    if (arrivalTrueAnomaly > 2*M_PI) {
-        totalViolation += (arrivalTrueAnomaly - 2*M_PI) * 10.0;
+    if (arrivalTrueAnomaly < 0.0 || arrivalTrueAnomaly > 2*M_PI) {
+        totalViolation += 10.0;
     }
 
-    // 2. Transfer time bounds
-    double minTransferTime = calculateMinimumTransferTime(departureTrueAnomaly, arrivalTrueAnomaly);
-    if (transferTime < minTransferTime) {
-        totalViolation += (minTransferTime - transferTime) * 50.0;  // High penalty for physics violations
-    }
-
-    if (transferTime > 20.0) {  // Maximum reasonable transfer time
-        totalViolation += (transferTime - 20.0) * 5.0;
-    }
-
-    // 3. Orbital intersection constraint (if orbits don't naturally intersect)
-    if (!orbitsIntersect()) {
-        // For non-intersecting orbits, check if transfer is geometrically feasible
-        double minRadius = std::min(_R1, _R2);
-        double maxRadius = std::max(_R1, _R2);
-
-        // Calculate transfer orbit parameters approximately
-        Physics::Vector3 r1 = Physics::OrbitMechanics::calculatePosition3D(
-            _R1, _e1, _i1, _raan1, _omega1, departureTrueAnomaly);
-        Physics::Vector3 r2 = Physics::OrbitMechanics::calculatePosition3D(
-            _R2, _e2, _i2, _raan2, _omega2, arrivalTrueAnomaly);
-
-        double r1_mag = r1.magnitude();
-        double r2_mag = r2.magnitude();
-
-        // Check if positions are reasonable for the given orbits
-        if (std::abs(r1_mag - _R1) > 0.1 * _R1) {  // Allow 10% deviation for elliptical orbits
-            totalViolation += std::abs(r1_mag - _R1) * 2.0;
-        }
-        if (std::abs(r2_mag - _R2) > 0.1 * _R2) {
-            totalViolation += std::abs(r2_mag - _R2) * 2.0;
-        }
-    }
-
-    // 4. Angular separation constraint (for very close true anomalies)
-    double angularSeparation = std::abs(arrivalTrueAnomaly - departureTrueAnomaly);
-    if (angularSeparation > M_PI) {
-        angularSeparation = 2*M_PI - angularSeparation;  // Take shorter path
-    }
-
-    if (angularSeparation < 0.1 && transferTime < 0.5) {  // Very small angle, very short time
-        totalViolation += (0.1 - angularSeparation) * 20.0;
+    // transfer time bounds
+    if (transferTime < 0.1 || transferTime > 100.0) {
+        totalViolation += 50.0;
     }
 
     return totalViolation;
 }
 
-// Helper function to calculate minimum physically possible transfer time
 template <typename T, typename Fun>
 double OrbitTransferObjective<T, Fun>::calculateMinimumTransferTime(
     double theta1, double theta2) {
@@ -415,7 +373,7 @@ double OrbitTransferObjective<T, Fun>::calculateMinimumTransferTime(
     cos_angle = std::max(-1.0, std::min(1.0, cos_angle));  // Clamp to valid range
     double transfer_angle = std::acos(cos_angle);
 
-    // Parabolic transfer time (minimum possible)
+    // Parabolic transfer time
     double chord = std::sqrt(r1_mag*r1_mag + r2_mag*r2_mag -
                             2*r1_mag*r2_mag*std::cos(transfer_angle));
     double s = (r1_mag + r2_mag + chord) / 2.0;
@@ -424,18 +382,14 @@ double OrbitTransferObjective<T, Fun>::calculateMinimumTransferTime(
     return M_PI * std::sqrt(a_parabolic*a_parabolic*a_parabolic / _MU);
 }
 
-// Check if orbits naturally intersect
 template <typename T, typename Fun>
 bool OrbitTransferObjective<T, Fun>::orbitsIntersect() {
-    // For circular orbits, they intersect if they're coplanar and radii are equal
     if (_e1 == 0.0 && _e2 == 0.0) {
         return (std::abs(_R1 - _R2) < 1e-6) &&
                (std::abs(_i1 - _i2) < 1e-6) &&
                (std::abs(_raan1 - _raan2) < 1e-6);
     }
 
-    // For elliptical orbits, more complex intersection calculation needed
-    // For now, assume they don't naturally intersect if they have different elements
     return false;
 }
 

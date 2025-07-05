@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
     }
 
     Camera camera;
-    camera.setZoom(50000000.0f); // Initial zoom level
+    camera.setZoom(50000.0f); // Initial zoom level
     camera.setPosition(glm::vec3(0.0f, 0.0f, 0.0f)); // Initial camera position
     Animation animation(5.0f);
 

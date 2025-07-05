@@ -8,6 +8,7 @@
 #include "visualization/OrbitModel.hpp"
 #include "core/Constants.hpp"
 #include "core/CoordinateSystem.hpp"
+#include "core/OrbitMechanics.hpp"
 
 OrbitModel::OrbitModel() : vao_(0), vbo_(0), initialized_(false) {}
 
@@ -110,43 +111,51 @@ void OrbitModel::generateOrbitPoints(int resolution) {
     orbit_points_.clear();
     std::vector<glm::vec3> physics_points;
 
+    std::cout << "OrbitModel generating points with:" << std::endl;
+    std::cout << "  radius=" << radius_ << ", inclination=" << inclination_*180/M_PI
+              << "°, RAAN=" << raan_*180/M_PI << "°" << std::endl;
+
     for (int i = 0; i < resolution; ++i) {
-        double true_anomaly = 2.0 * M_PI * i / (resolution - 1);
+        double true_anomaly = 2.0 * M_PI * i / resolution;
 
-        double r;
-        if (eccentricity_ < 1e-6) { // Circular orbit
-            r = radius_;
-        } else { // Elliptical orbit
-            double p = radius_ * (1.0 - eccentricity_ * eccentricity_);
-            r = p / (1.0 + eccentricity_ * cos(true_anomaly));
-        }
-
-        // Position in orbital plane
-        glm::vec3 pos_orbital(
-            r * cos(true_anomaly),
-            r * sin(true_anomaly),
-            0.0
+        // USE THE SAME METHOD AS TRANSFERMODEL
+        // This ensures perfect consistency between orbit rendering and transfer calculations
+        Physics::Vector3 pos_physics = Physics::OrbitMechanics::calculatePosition3D(
+            radius_,           // Semi-major axis (for circular: a = radius)
+            eccentricity_,     // Eccentricity
+            inclination_,      // Inclination
+            raan_,             // Right ascension of ascending node
+            arg_periapsis_,    // Argument of periapsis
+            true_anomaly       // True anomaly
         );
 
-        // Transform to inertial physics coordinates
-        glm::mat3 R = CoordinateSystem::orbitalToInertialMatrix(
-            raan_, inclination_, arg_periapsis_
-        );
-
-        glm::vec3 pos_physics = R * pos_orbital;
-        physics_points.push_back(pos_physics);
-
+        // Convert Physics::Vector3 to glm::vec3 for visualization pipeline
+        glm::vec3 glm_pos(pos_physics.x, pos_physics.y, pos_physics.z);
+        physics_points.push_back(glm_pos);
     }
 
+    // Transform to visualization coordinates using the same pipeline as TransferModel
     orbit_points_ = CoordinateSystem::trajectoryToVisualization(physics_points);
 
+    // Debug output for verification
     if (physics_points.size() >= 3) {
-        glm::vec3 expected_normal(
-            sin(raan_) * sin(inclination_),
-            -cos(raan_) * sin(inclination_),
-            cos(inclination_)
-        );
+        std::cout << "  Sample points:" << std::endl;
+        std::cout << "    ν=0°:   (" << physics_points[0].x << ", " << physics_points[0].y << ", " << physics_points[0].z << ")" << std::endl;
+        std::cout << "    ν=90°:  (" << physics_points[resolution/4].x << ", " << physics_points[resolution/4].y << ", " << physics_points[resolution/4].z << ")" << std::endl;
+        std::cout << "    ν=180°: (" << physics_points[resolution/2].x << ", " << physics_points[resolution/2].y << ", " << physics_points[resolution/2].z << ")" << std::endl;
+
+        // Verify the orbit is circular by checking radius at different points
+        double r0 = sqrt(physics_points[0].x*physics_points[0].x + physics_points[0].y*physics_points[0].y + physics_points[0].z*physics_points[0].z);
+        double r90 = sqrt(physics_points[resolution/4].x*physics_points[resolution/4].x + physics_points[resolution/4].y*physics_points[resolution/4].y + physics_points[resolution/4].z*physics_points[resolution/4].z);
+
+        std::cout << "  Radius verification: r(0°)=" << r0 << ", r(90°)=" << r90 << " (should be ≈" << radius_ << ")" << std::endl;
+
+        if (std::abs(r0 - radius_) > 1e-6 || std::abs(r90 - radius_) > 1e-6) {
+            std::cout << "  WARNING: Orbit radius mismatch!" << std::endl;
+        }
     }
+
+    std::cout << "  Generated " << orbit_points_.size() << " visualization points" << std::endl;
 }
 
 void OrbitModel::updateBuffers() {

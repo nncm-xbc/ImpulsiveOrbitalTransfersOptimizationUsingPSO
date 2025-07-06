@@ -151,10 +151,9 @@ inline constexpr double I2 = 0.0;      // Equatorial
 
 **Results**:
 
-- **Total ΔV**: ~3.94 km/s
+- **Total ΔV**: ~6.85 km/s
 - **Transfer strategy**: Two-impulse Hohmann transfer
-- **Transfer time**: ~5.25 hours
-- **Impulse distribution**: Perigee and apogee burns
+- **Transfer time**: ~3.69 hours
 
 ### Example 2: Non-Coplanar Circular Transfer
 
@@ -170,12 +169,9 @@ inline constexpr double I2 = 0.0;      // Equatorial (0°)
 
 **Results**:
 
-- **Total ΔV**: ~4.06 km/s
+- **Total ΔV**: ~7.04 km/s
 - **Transfer strategy**: Combined radius and plane change
-- **Plane change distribution**:
-    - First impulse: 3.25° plane change
-    - Second impulse: 25.25° plane change
-- **Optimal strategy**: Most plane change at higher altitude (lower velocity)
+- **Transfer time**: ~1.08 hours
 
 ---
 
@@ -197,15 +193,6 @@ cmake .. -DCMAKE_BUILD_TYPE=Debug
 cmake .. -DENABLE_PROFILING=ON
 ```
 
-### System Requirements
-
-| Component    | Minimum                            | Recommended                          |
-| ------------ | ---------------------------------- | ------------------------------------ |
-| **OS**       | Ubuntu 20.04, macOS 11, Windows 10 | Ubuntu 22.04+, macOS 12+, Windows 11 |
-| **Compiler** | GCC 10, Clang 12                   | GCC 11+, Clang 14+                   |
-| **Memory**   | 4GB RAM                            | 8GB+ RAM                             |
-| **Graphics** | OpenGL 3.3                         | OpenGL 4.0+                          |
-
 ---
 
 ## Usage
@@ -223,7 +210,7 @@ namespace Physics::Constants {
     inline constexpr double I2 = 0.0;     // Final inclination (rad)
 
     // PSO parameters
-    inline constexpr int SWARM_SIZE = 30;
+    inline constexpr int SWARM_SIZE = 500;
     inline constexpr int MAX_ITERATIONS = 1000;
 }
 ```
@@ -295,21 +282,17 @@ TransferType=NON_COPLANAR
 ### Optimization Characteristics
 
 - **Convergence**: Typically achieves optimal solution within 200-300 iterations
-- **Accuracy**: Results match analytical solutions (where available) to 6+ decimal places
+- **Accuracy**: Results match analytical solutions (where available)
 - **Scalability**: Linear scaling with number of CPU cores via OpenMP
 
 ### Computational Requirements
 
 | Transfer Type | Typical Runtime | Memory Usage | Iterations |
 | ------------- | --------------- | ------------ | ---------- |
-| Coplanar      | 1-2 seconds     | <100 MB      | 200-300    |
+| Coplanar      | 1-2 seconds     | <100 MB      | 100-200    |
 | Non-coplanar  | 2-5 seconds     | <150 MB      | 300-500    |
 
 ---
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
 ### Development and Testing
 
@@ -333,18 +316,3 @@ make
 # Or use CTest
 ctest
 ```
-
----
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## Acknowledgments
-
-- Based on research by Pontani & Conway (2012) on PSO for orbital transfers
-- Uses modern C++20 features for performance and safety
-- Visualization powered by OpenGL and GLFW
-- Testing framework provided by Catch2

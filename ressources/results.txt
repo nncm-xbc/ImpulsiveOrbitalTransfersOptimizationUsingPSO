@@ -1,26 +1,25 @@
 # PSO Optimization Results for Orbital Transfer
-# Case 2: Transfer between non-coplanar circular orbits
+# Case 1: Transfer between coplanar circular orbits
 
 [InitialOrbit]
 radius = 1
-inclination = 0.497419
+inclination = 0
 raan = 0.0
 eccentricity = 0
 arg_periapsis = 0.0
 
 [TargetOrbit]
-radius = 1.5
+radius = 6.61
 inclination = 0
 raan = 0.0
 eccentricity = 0
 arg_periapsis = 0.0
 
 [OptimalTransfer]
-initial_true_anomaly = 5.88356
-final_true_anomaly = 1.22116
-transfer_time = 0.1
+initial_true_anomaly = 3.1304
+final_true_anomaly = 0.694607
+transfer_time = 17.1765
 is_three_impulse = false
 
 [DeltaV]
-magnitude = 0.605566,0.849529
-plane_change = 0.464859,0.186736
+magnitude = 0.316886,0.548526

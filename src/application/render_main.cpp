@@ -18,41 +18,9 @@
 #include "visualization/Animation.hpp"
 #include "visualization/Results.hpp"
 
-void printPSOVerification(const PSOOrbitTransferResult& psoResult) {
-    std::cout << "\n╔══════════════════════════════════════════════════════════════════════╗" << std::endl;
-    std::cout << "║                      PSO SOLUTION VERIFICATION                       ║" << std::endl;
-    std::cout << "╚══════════════════════════════════════════════════════════════════════╝" << std::endl;
-
-    // Calculate positions
-    glm::vec3 pso_initial_pos = Physics::OrbitMechanics::calculateOrbitPosition(
-        psoResult.initial_radius,
-        psoResult.initial_inclination,
-        psoResult.initial_true_anomaly
-    );
-
-    glm::vec3 pso_target_pos = Physics::OrbitMechanics::calculateOrbitPosition(
-        psoResult.target_radius,
-        psoResult.target_inclination,
-        psoResult.final_true_anomaly
-    );
-
-    std::cout << std::fixed << std::setprecision(3);
-    std::cout << " TRANSFER ENDPOINTS:" << std::endl;
-    std::cout << "   Initial Position:  (" << pso_initial_pos.x << ", "
-              << pso_initial_pos.y << ", " << pso_initial_pos.z << ") DU" << std::endl;
-    std::cout << "   Target Position:   (" << pso_target_pos.x << ", "
-              << pso_target_pos.y << ", " << pso_target_pos.z << ") DU" << std::endl;
-
-    std::cout << "\n TRUE ANOMALIES:" << std::endl;
-    std::cout << "   Departure:         " << std::setw(8) << psoResult.initial_true_anomaly * 180/M_PI << "°" << std::endl;
-    std::cout << "   Arrival:           " << std::setw(8) << psoResult.final_true_anomaly * 180/M_PI << "°" << std::endl;
-
-    std::cout << std::endl;
-}
-
 // Improved orbit information display
 void printOrbitInfo(const std::string& name, double radius, double inclination, double raan, double eccentricity) {
-    std::cout << name << " ORBIT:" << std::endl;
+    std::cout << "\n "<< name << " ORBIT:" << std::endl;
     std::cout << "   ├─ Type:           " << (eccentricity < 1e-6 ? "Circular" : "Elliptical") << std::endl;
     std::cout << "   ├─ Radius:         " << std::fixed << std::setprecision(3) << radius << " DU" << std::endl;
     std::cout << "   ├─ Inclination:    " << std::setprecision(1) << inclination * 180/M_PI << "°" << std::endl;
@@ -107,7 +75,6 @@ int main(int argc, char* argv[]) {
         usePSOResults = loadPSOResultsFromFile(argv[1], psoResult);
         if (usePSOResults) {
             std::cout << "\n Loaded PSO results from " << argv[1] << std::endl;
-            printPSOVerification(psoResult);
         }
     }
 

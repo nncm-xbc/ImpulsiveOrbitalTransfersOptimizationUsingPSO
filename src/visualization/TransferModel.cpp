@@ -48,21 +48,10 @@ void TransferModel::setTwoImpulseTransfer(double initialRadius, double initialIn
 
     generateTransferTrajectory();
     updateBuffers();
-    debugTargetPosition();
 
     glm::vec3 expected_target(1.5, 0, 0);
     glm::vec3 actual_target = Physics::OrbitMechanics::calculateOrbitPosition(
         target_radius_, target_inclination_, final_true_anomaly_);
-
-    if (glm::length(actual_target - expected_target) > 0.1) {
-        std::cout << "WARNING: Target position mismatch!" << std::endl;
-        std::cout << "  Expected: (" << expected_target.x << ", " << expected_target.y
-                    << ", " << expected_target.z << ")" << std::endl;
-        std::cout << "  Actual: (" << actual_target.x << ", " << actual_target.y
-                    << ", " << actual_target.z << ")" << std::endl;
-    } else {
-        std::cout << "Target position matches expected!" << std::endl;
-    }
 }
 
 const std::vector<glm::vec3>& TransferModel::getImpulsePositions() const { return impulse_positions_; }
@@ -77,7 +66,6 @@ void TransferModel::generateTransferTrajectory() {
 
     // Check if transfer is coplanar
     bool is_coplanar = (constant::I1 == constant::I2);
-    printTransferGenerationHeader(is_coplanar);
 
     glm::vec3 r0;
     glm::vec3 rf;
@@ -98,12 +86,12 @@ void TransferModel::generateTransferTrajectory() {
         rf = glm::vec3(rf_physics.x, rf_physics.y, rf_physics.z);
     }
 
-    std::cout << "\nPSO-OPTIMIZED TRANSFER ENDPOINTS:" << std::endl;
-    std::cout << "   Departure: (" << std::fixed << std::setprecision(3)
-              << r0.x << ", " << r0.y << ", " << r0.z << ") DU at ν=" << initial_true_anomaly_*180/M_PI << "°" << std::endl;
-    std::cout << "   Arrival:   (" << rf.x << ", " << rf.y << ", " << rf.z
-              << ") DU at ν=" << final_true_anomaly_*180/M_PI << "°" << std::endl;
-    std::cout << "   ✓ Using PSO-optimized positions (no hardcoded expectations)" << std::endl;
+    //std::cout << "\nPSO-OPTIMIZED TRANSFER ENDPOINTS:" << std::endl;
+    //std::cout << "   Departure: (" << std::fixed << std::setprecision(3)
+    //          << r0.x << ", " << r0.y << ", " << r0.z << ") DU at ν=" << initial_true_anomaly_*180/M_PI << "°" << std::endl;
+    //std::cout << "   Arrival:   (" << rf.x << ", " << rf.y << ", " << rf.z
+    //          << ") DU at ν=" << final_true_anomaly_*180/M_PI << "°" << std::endl;
+    //std::cout << "   ✓ Using PSO-optimized positions (no hardcoded expectations)" << std::endl;
 
     float r0_mag = glm::length(r0);
     float rf_mag = glm::length(rf);
@@ -213,9 +201,6 @@ void TransferModel::generateTransferTrajectory() {
     // NON-COPLANAR CASE
     // ============================================
     else {
-        std::cout << "\n NON-COPLANAR TRANSFER GENERATION:" << std::endl;
-        std::cout << "   Initial: R=" << initial_radius_ << " DU, i=" << initial_inclination_*180/M_PI << "°" << std::endl;
-        std::cout << "   Target:  R=" << target_radius_ << " DU, i=" << target_inclination_*180/M_PI << "°" << std::endl;
 
         // ============================================
         // STEP 1: Calculate positions using SAME method as OrbitModel
@@ -233,10 +218,6 @@ void TransferModel::generateTransferTrajectory() {
             final_true_anomaly_                      // ν
         );
 
-        std::cout << "   Calculated positions using OrbitModel method:" << std::endl;
-        std::cout << "     r0 = (" << r0_physics.x << ", " << r0_physics.y << ", " << r0_physics.z << ")" << std::endl;
-        std::cout << "     rf = (" << rf_physics.x << ", " << rf_physics.y << ", " << rf_physics.z << ")" << std::endl;
-
         // ============================================
         // STEP 2: Create transfer trajectory using simple interpolation
         // ============================================
@@ -247,41 +228,31 @@ void TransferModel::generateTransferTrajectory() {
         for (int i = 0; i <= transfer_resolution; ++i) {
             double t = static_cast<double>(i) / transfer_resolution;
 
-            // Create a curved path that goes around the outside
-            // Method: Use a circular arc in 3D space
-
-            // Calculate intermediate radius (smoothly varying from r0 to rf)
             double current_radius = r0_mag + (rf_mag - r0_mag) * t;
 
-            // Find the plane containing r0, rf, and origin
             Physics::Vector3 normal = r0_physics.cross(rf_physics);
 
             if (normal.magnitude() < 1e-6) {
-                // Degenerate case: points are collinear, use simple interpolation
+                // Degenerate case: points are collinear, use interpolation
                 Physics::Vector3 interpolated = r0_physics * (1.0 - t) + rf_physics * t;
                 physics_transfer_points.push_back(interpolated);
             } else {
                 normal = normal.normalized();
 
-                // Create coordinate system in the transfer plane
                 Physics::Vector3 u = r0_physics.normalized();
                 Physics::Vector3 v = normal.cross(u).normalized();
 
-                // Calculate angles of start and end points in this plane
                 double r0_angle = atan2(r0_physics.dot(v), r0_physics.dot(u));
                 double rf_angle = atan2(rf_physics.dot(v), rf_physics.dot(u));
 
-                // Ensure we take the shorter arc
                 if (rf_angle - r0_angle > M_PI) {
                     rf_angle -= 2.0 * M_PI;
                 } else if (r0_angle - rf_angle > M_PI) {
                     rf_angle += 2.0 * M_PI;
                 }
 
-                // Interpolate angle
                 double current_angle = r0_angle + (rf_angle - r0_angle) * t;
 
-                // Create position at current angle and radius
                 Physics::Vector3 interpolated_pos = u * (current_radius * cos(current_angle)) +
                                                   v * (current_radius * sin(current_angle));
 
@@ -313,46 +284,35 @@ void TransferModel::generateTransferTrajectory() {
             double start_error = (computed_start - r0_physics).magnitude();
             double end_error = (computed_end - rf_physics).magnitude();
 
-            std::cout << "   Endpoint verification:" << std::endl;
-            std::cout << "     Start error: " << start_error << " DU (should be 0.000000)" << std::endl;
-            std::cout << "     End error:   " << end_error << " DU (should be 0.000000)" << std::endl;
-
-            if (start_error < 1e-15 && end_error < 1e-15) {
-                std::cout << "   ✓ Transfer connects perfectly to orbits" << std::endl;
-            } else {
-                std::cout << "   ERROR: Something is still wrong!" << std::endl;
+            if (start_error > 1e-15 && end_error > 1e-15) {
+                std::cout << "  ERROR: Transfer doesn't connects perfectly to orbits" << std::endl;
             }
         }
 
         // ============================================
-        // STEP 5: Create simple ellipse for reference (optional)
+        // STEP 5: Create simple ellipse for reference
         // ============================================
 
 
         std::vector<glm::vec3> glm_ellipse_points;
 
-        // Method 1: Use the same arc approach as transfer trajectory for consistency
         Physics::Vector3 normal = r0_physics.cross(rf_physics);
 
         if (normal.magnitude() > 1e-6) {
             normal = normal.normalized();
 
-            // Create coordinate system in the transfer plane (same as transfer trajectory)
             Physics::Vector3 u = r0_physics.normalized();
             Physics::Vector3 v = normal.cross(u).normalized();
 
-            // Calculate angles of start and end points in this plane
             double r0_angle = atan2(r0_physics.dot(v), r0_physics.dot(u));
             double rf_angle = atan2(rf_physics.dot(v), rf_physics.dot(u));
 
-            // Ensure we take the shorter arc (same logic as transfer)
             if (rf_angle - r0_angle > M_PI) {
                 rf_angle -= 2.0 * M_PI;
             } else if (r0_angle - rf_angle > M_PI) {
                 rf_angle += 2.0 * M_PI;
             }
 
-            // Create complete ellipse using same coordinate system
             const int ellipse_resolution = 200;
             double r0_mag = r0_physics.magnitude();
             double rf_mag = rf_physics.magnitude();
@@ -360,26 +320,20 @@ void TransferModel::generateTransferTrajectory() {
             for (int i = 0; i < ellipse_resolution; ++i) {
                 double angle_progress = static_cast<double>(i) / ellipse_resolution;
 
-                // Create ellipse that extends beyond the transfer arc
-                // Use full 360° range but with varying radius
                 double full_angle = 2.0 * M_PI * angle_progress;
 
-                // Calculate radius variation (elliptical)
                 double a = (r0_mag + rf_mag) / 2.0;  // Semi-major axis
                 double c = std::abs(rf_mag - r0_mag) / 2.0;  // Distance from center to focus
                 double e = c / a;  // Eccentricity
 
-                // Ellipse equation: r = a(1-e²)/(1+e*cos(θ))
                 double current_radius = a * (1.0 - e * e) / (1.0 + e * cos(full_angle));
 
-                // Create position using same coordinate system as transfer
                 Physics::Vector3 ellipse_pos = u * (current_radius * cos(full_angle)) +
                                              v * (current_radius * sin(full_angle));
 
                 glm_ellipse_points.push_back(glm::vec3(ellipse_pos.x, ellipse_pos.y, ellipse_pos.z));
             }
 
-            std::cout << "   Generated ellipse using same coordinate system as transfer" << std::endl;
         } else {
             // Degenerate case: create simple circular reference
             double avg_radius = (r0_physics.magnitude() + rf_physics.magnitude()) / 2.0;
@@ -400,7 +354,6 @@ void TransferModel::generateTransferTrajectory() {
                 glm_ellipse_points.push_back(glm::vec3(pos.x, pos.y, pos.z));
             }
 
-            std::cout << "   Generated circular reference ellipse" << std::endl;
         }
 
         complete_ellipse_points_ = CoordinateSystem::trajectoryToVisualization(glm_ellipse_points);
@@ -417,9 +370,6 @@ void TransferModel::generateTransferTrajectory() {
 
         impulse_positions_.push_back(CoordinateSystem::physicsToVisualization(r0_glm));
         impulse_positions_.push_back(CoordinateSystem::physicsToVisualization(rf_glm));
-
-        std::cout << "   Generated " << physics_transfer_points.size() << " transfer points" << std::endl;
-        std::cout << "   ✓ Using same coordinate system as orbit rendering" << std::endl;
     }
     printTransferCompletion(transfer_points_.size(), complete_ellipse_points_.size());
 }
@@ -512,7 +462,7 @@ void TransferModel::updateBuffers() {
     // Debug
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
-        std::cout << "OpenGL error in updateBuffers: " << err << std::endl;
+        std::cout << "ERROR: OpenGL error in updateBuffers: " << err << std::endl;
     }
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
@@ -521,7 +471,6 @@ void TransferModel::updateBuffers() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    std::cout << "Buffer update complete" << std::endl;
 }
 
 void TransferModel::debugTargetPosition() {
@@ -577,36 +526,9 @@ void TransferModel::printTransferGenerationHeader(bool is_coplanar) {
               << " CIRCULAR TRANSFER" << std::endl;
 }
 
-void TransferModel::printPlaneVerification(const std::vector<glm::vec3>& points, const glm::vec3& expected_normal,
-                           const std::string& orbit_name) {
-    if (!CoordinateSystem::verifyOrbitalPlane(points, expected_normal)) {
-        std::cout << " WARNING: " << orbit_name << " orbit not in expected plane!" << std::endl;
-    } else {
-        std::cout << orbit_name << " orbit plane verification passed" << std::endl;
-    }
-}
-
 void TransferModel::printTransferCompletion(size_t transfer_points, size_t ellipse_points) {
     std::cout << "\n TRANSFER GENERATION SUMMARY:" << std::endl;
     std::cout << "   ├─ Transfer Points:     " << transfer_points << std::endl;
     std::cout << "   ├─ Complete Ellipse:    " << ellipse_points << std::endl;
     std::cout << "   └─ Status:               COMPLETED" << std::endl;
-}
-
-void TransferModel::printPositionVerification(const glm::vec3& calculated, const glm::vec3& expected,
-                              const std::string& point_name) {
-    float distance = glm::length(calculated - expected);
-
-    std::cout << "" << point_name << " VERIFICATION:" << std::endl;
-    std::cout << "   ├─ Expected:  (" << std::fixed << std::setprecision(3)
-              << expected.x << ", " << expected.y << ", " << expected.z << ")" << std::endl;
-    std::cout << "   ├─ Actual:    (" << calculated.x << ", " << calculated.y << ", "
-              << calculated.z << ")" << std::endl;
-    std::cout << "   └─ Distance:  " << std::setprecision(6) << distance;
-
-    if (distance < 0.01f) {
-        std::cout << " MATCH" << std::endl;
-    } else {
-        std::cout << "  MISMATCH" << std::endl;
-    }
 }
